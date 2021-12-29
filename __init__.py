@@ -7,7 +7,6 @@ import anki.notes
 import aqt.deckbrowser
 import aqt.editor
 import aqt.operations
-import re
 import aqt.operations.note
 import aqt.utils
 import aqt.webview
@@ -26,6 +25,7 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
         rdflib.plugins.sparql.prepareQuery(
             textwrap.dedent(
                 f'''
+                PREFIX anki: <https://veyndan.com/foo/>
                 PREFIX bd: <http://www.bigdata.com/rdf#>
                 PREFIX dct: <http://purl.org/dc/terms/>
                 PREFIX ontolex: <http://www.w3.org/ns/lemon/ontolex#>
@@ -37,77 +37,116 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
                 PREFIX wdt: <http://www.wikidata.org/prop/direct/>
                 PREFIX wikibase: <http://wikiba.se/ontology#>
                 
-                SELECT DISTINCT ?enPlural ?enUsageExample ?deSingularNominativeDefiniteArticleRepresentation (MIN(?dePronunciationAudioSingularNominativeUrl) AS ?dePronunciationAudioSingularNominativeUrl1) (MIN(?dePluralNominative) AS ?dePluralNominative1) ?dePluralNominativeDefiniteArticleRepresentation (MIN(?dePronunciationAudioPluralNominativeUrl) AS ?dePronunciationAudioPluralNominativeUrl1) WHERE {{
-                    VALUES ?dePluralNominativeDefiniteArticleRepresentation {{
-                        "die"@de
-                    }}
+                CONSTRUCT {{
+                    _:enSingularField a anki:field;
+                        rdfs:label "EN Singular";
+                        rdf:value ?enSingular.
                     
-                    SERVICE <https://query.wikidata.org/sparql> {{
-                        ?enLexicalEntity rdf:type ontolex:LexicalEntry;
-                            dct:language wd:Q1860;
-                            wikibase:lexicalCategory wd:Q1084;
-                            wikibase:lemma ?enSingular;
-                            ontolex:lexicalForm ?enLexicalForm.
-                        ?enLexicalForm wikibase:grammaticalFeature wd:Q146786;
-                            ontolex:representation ?enPlural.
-                        OPTIONAL {{ ?enLexicalEntity wdt:P5831 ?enUsageExample. }}
-                        MINUS {{ ?enLexicalForm wikibase:grammaticalFeature wd:Q1861696. }}
-                        ?deLexicalEntity rdf:type ontolex:LexicalEntry;
-                            dct:language wd:Q188;
-                            wikibase:lemma ?deSingularNominative;
-                            wdt:P5185 ?deSingularNominativeGrammaticalGender;
-                            ontolex:lexicalForm ?deLexicalForm.
-                        ?deDefiniteArticleLexicalEntity wikibase:lexicalCategory wd:Q2865743;
-                            dct:language wd:Q188;
-                            ontolex:lexicalForm ?deDefiniteArticleLexicalForm.
-                        ?deDefiniteArticleLexicalForm wikibase:grammaticalFeature wd:Q110786, wd:Q131105, ?deSingularNominativeGrammaticalGender;
-                            ontolex:representation ?deSingularNominativeDefiniteArticleRepresentation.
-                        {{
-                            ?deLexicalForm wikibase:grammaticalFeature wd:Q110786, wd:Q131105;
-                                p:P443 ?dePronunciationAudioSingularNominative.
-                            ?dePronunciationAudioSingularNominative ps:P443 ?dePronunciationAudioSingularNominativeUrl.
-                        }}
-                        UNION
-                        {{
-                            ?deLexicalForm wikibase:grammaticalFeature wd:Q146786, wd:Q131105;
-                                ontolex:representation ?dePluralNominative;
-                            p:P443 ?dePronunciationAudioPluralNominative.
-                            ?dePronunciationAudioPluralNominative ps:P443 ?dePronunciationAudioPluralNominativeUrl.
-                        }}
-                    }}
-                    SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+                    _:enPluralField a anki:field;
+                        rdfs:label "EN Plural";
+                        rdf:value ?enPlural.
+                    
+                    _:enUsageExampleField a anki:field;
+                        rdfs:label "EN Usage Example";
+                        rdf:value ?enUsageExample.
+                    
+                    _:deSingularNominativeField a anki:field;
+                        rdfs:label "DE Singular Nominative";
+                        rdf:value ?deSingularNominative.
+                    
+                    _:deSingularNominativeDefiniteArticleRepresentation a anki:field;
+                        rdfs:label "DE Singular Nominative Definite Article";
+                        rdf:value ?deSingularNominativeDefiniteArticleRepresentation.
+                    
+                    _:dePronunciationAudioSingularNominativeUrl1 a anki:field;
+                        rdfs:label "DE Singular Nominative Pronunciation";
+                        rdf:value ?dePronunciationAudioSingularNominativeUrl1.
+                    
+                    _:dePluralNominative1 a anki:field;
+                        rdfs:label "DE Plural Nominative";
+                        rdf:value ?dePluralNominative1.
+                    
+                    _:dePluralNominativeDefiniteArticleRepresentation a anki:field;
+                        rdfs:label "DE Plural Nominative Definite Article";
+                        rdf:value ?dePluralNominativeDefiniteArticleRepresentation.
+                    
+                    _:dePronunciationAudioPluralNominativeUrl1 a anki:field;
+                        rdfs:label "DE Plural Nominative Pronunciation";
+                        rdf:value ?dePronunciationAudioPluralNominativeUrl1.
                 }}
-                GROUP BY ?enPlural ?enUsageExample ?deSingularNominativeDefiniteArticleRepresentation ?dePluralNominativeDefiniteArticleRepresentation
+                WHERE {{
+                    SELECT DISTINCT ?enPlural ?enUsageExample ?deSingularNominativeDefiniteArticleRepresentation (MIN(?dePronunciationAudioSingularNominativeUrl) AS ?dePronunciationAudioSingularNominativeUrl1) (MIN(?dePluralNominative) AS ?dePluralNominative1) ?dePluralNominativeDefiniteArticleRepresentation (MIN(?dePronunciationAudioPluralNominativeUrl) AS ?dePronunciationAudioPluralNominativeUrl1) WHERE {{
+                        VALUES ?dePluralNominativeDefiniteArticleRepresentation {{
+                            "die"@de
+                        }}
+                        
+                        SERVICE <https://query.wikidata.org/sparql> {{
+                            ?enLexicalEntity rdf:type ontolex:LexicalEntry;
+                                dct:language wd:Q1860;
+                                wikibase:lexicalCategory wd:Q1084;
+                                wikibase:lemma ?enSingular;
+                                ontolex:lexicalForm ?enLexicalForm.
+                            ?enLexicalForm wikibase:grammaticalFeature wd:Q146786;
+                                ontolex:representation ?enPlural.
+                            OPTIONAL {{ ?enLexicalEntity wdt:P5831 ?enUsageExample. }}
+                            MINUS {{ ?enLexicalForm wikibase:grammaticalFeature wd:Q1861696. }}
+                            ?deLexicalEntity rdf:type ontolex:LexicalEntry;
+                                dct:language wd:Q188;
+                                wikibase:lemma ?deSingularNominative;
+                                wdt:P5185 ?deSingularNominativeGrammaticalGender;
+                                ontolex:lexicalForm ?deLexicalForm.
+                            ?deDefiniteArticleLexicalEntity wikibase:lexicalCategory wd:Q2865743;
+                                dct:language wd:Q188;
+                                ontolex:lexicalForm ?deDefiniteArticleLexicalForm.
+                            ?deDefiniteArticleLexicalForm wikibase:grammaticalFeature wd:Q110786, wd:Q131105, ?deSingularNominativeGrammaticalGender;
+                                ontolex:representation ?deSingularNominativeDefiniteArticleRepresentation.
+                            {{
+                                ?deLexicalForm wikibase:grammaticalFeature wd:Q110786, wd:Q131105;
+                                    p:P443 ?dePronunciationAudioSingularNominative.
+                                ?dePronunciationAudioSingularNominative ps:P443 ?dePronunciationAudioSingularNominativeUrl.
+                            }}
+                            UNION
+                            {{
+                                ?deLexicalForm wikibase:grammaticalFeature wd:Q146786, wd:Q131105;
+                                    ontolex:representation ?dePluralNominative;
+                                p:P443 ?dePronunciationAudioPluralNominative.
+                                ?dePronunciationAudioPluralNominative ps:P443 ?dePronunciationAudioPluralNominativeUrl.
+                            }}
+                        }}
+                        SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+                    }}
+                }}
                 '''
             )
         ),
         initBindings={
-            'enSingular': rdflib.Literal(note['EN Singular (enSingular)'], lang='en'),
-            'deSingularNominative': rdflib.Literal(note['DE Singular Nominative (deSingularNominative)'], lang='de'),
+            'enSingular': rdflib.Literal(note['EN Singular'], lang='en'),
+            'deSingularNominative': rdflib.Literal(note['DE Singular Nominative'], lang='de'),
         }
     )
 
-    assert len(query_result.bindings) == 1, f"Expected 1 binding but received {len(query_result.bindings)} bindings"
+    query_result2 = query_result.graph.query(
+        rdflib.plugins.sparql.prepareQuery(
+            textwrap.dedent(
+                f'''
+                PREFIX anki: <https://veyndan.com/foo/>
+                
+                SELECT ?fieldLabel ?fieldValue WHERE {{
+                    [] a anki:field;
+                        rdfs:label ?fieldLabel;
+                        rdf:value ?fieldValue.
+                }}
+                '''
+            )
+        )
+    )
 
-    binding: rdflib.plugins.sparql.sparql.FrozenBindings = query_result.bindings[0]
-
-    class BindingNameToFieldName(typing.NamedTuple):
-        binding_name: str
-        field_name: str
-
-    binding_name_to_field_names = []
-    for key in note.keys():
-        match = re.search(r"^.+ \((.+)\)$", key)
-        if match is not None:
-            binding_name_to_field_names.append(BindingNameToFieldName(match[1], key))
-        else:
-            print(f"No matches for {key}")
-
-    for binding_name_to_field_name in binding_name_to_field_names:
-        field_literal_value: typing.Optional[rdflib.term.Literal] = binding[rdflib.term.Variable(binding_name_to_field_name.binding_name)]
-        if field_literal_value is not None:
-            field_link_value = editor.urlToLink(field_literal_value)
-            note[binding_name_to_field_name.field_name] = field_literal_value if field_link_value is None else field_link_value
+    for binding in query_result2:
+        label: rdflib.Literal = binding['fieldLabel']
+        value: rdflib.Literal = binding['fieldValue']
+        print(f"({label}, {value})")
+        link = editor.urlToLink(value.value)
+        note[label.value] = value.value if link is None else link
 
     return note
 
