@@ -28,12 +28,12 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
                 PREFIX anki: <https://veyndan.com/foo/>
                 PREFIX bd: <http://www.bigdata.com/rdf#>
                 PREFIX dct: <http://purl.org/dc/terms/>
+                PREFIX hint: <http://www.bigdata.com/queryHints#>
                 PREFIX ontolex: <http://www.w3.org/ns/lemon/ontolex#>
                 PREFIX p: <http://www.wikidata.org/prop/>
                 PREFIX ps: <http://www.wikidata.org/prop/statement/>
                 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
                 PREFIX wd: <http://www.wikidata.org/entity/>
-                PREFIX wdref: <http://www.wikidata.org/reference/>
                 PREFIX wdt: <http://www.wikidata.org/prop/direct/>
                 PREFIX wikibase: <http://wikiba.se/ontology#>
                 
@@ -81,39 +81,52 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
                         }}
                         
                         SERVICE <https://query.wikidata.org/sparql> {{
-                            ?enLexicalEntity rdf:type ontolex:LexicalEntry;
-                                dct:language wd:Q1860;
-                                wikibase:lexicalCategory wd:Q1084;
-                                wikibase:lemma ?enSingular;
-                                ontolex:lexicalForm ?enLexicalForm.
-                            ?enLexicalForm wikibase:grammaticalFeature wd:Q146786;
-                                ontolex:representation ?enPlural.
-                            OPTIONAL {{ ?enLexicalEntity wdt:P5831 ?enUsageExample. }}
-                            MINUS {{ ?enLexicalForm wikibase:grammaticalFeature wd:Q1861696. }}
-                            ?deLexicalEntity rdf:type ontolex:LexicalEntry;
-                                dct:language wd:Q188;
-                                wikibase:lemma ?deSingularNominative;
-                                wdt:P5185 ?deSingularNominativeGrammaticalGender;
-                                ontolex:lexicalForm ?deLexicalForm.
-                            ?deDefiniteArticleLexicalEntity wikibase:lexicalCategory wd:Q2865743;
-                                dct:language wd:Q188;
-                                ontolex:lexicalForm ?deDefiniteArticleLexicalForm.
-                            ?deDefiniteArticleLexicalForm wikibase:grammaticalFeature wd:Q110786, wd:Q131105, ?deSingularNominativeGrammaticalGender;
-                                ontolex:representation ?deSingularNominativeDefiniteArticleRepresentation.
+                            hint:Query hint:optimizer "None" .
+  
+                            ?deSingularNominativeLexicalEntry wikibase:lemma ?deSingularNominative.
+                            ?deSingularNominativeLexicalEntry dct:language wd:Q188.
+                            ?deSingularNominativeLexicalEntry wdt:P5185 ?deSingularNominativeGrammaticalGender.
+                            ?deSingularNominativeLexicalEntry rdf:type ontolex:LexicalEntry.
+                            ?deSingularNominativeLexicalEntry ontolex:lexicalForm ?deSingularNominativeLexicalForm.
+                            
                             {{
-                                ?deLexicalForm wikibase:grammaticalFeature wd:Q110786, wd:Q131105;
-                                    p:P443 ?dePronunciationAudioSingularNominative.
+                                ?deSingularNominativeLexicalForm p:P443 ?dePronunciationAudioSingularNominative.
                                 ?dePronunciationAudioSingularNominative ps:P443 ?dePronunciationAudioSingularNominativeUrl.
+                                ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q131105.
+                                ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q110786.
                             }}
                             UNION
                             {{
-                                ?deLexicalForm wikibase:grammaticalFeature wd:Q146786, wd:Q131105;
-                                    ontolex:representation ?dePluralNominative;
-                                p:P443 ?dePronunciationAudioPluralNominative.
+                                ?deSingularNominativeLexicalForm p:P443 ?dePronunciationAudioPluralNominative.
                                 ?dePronunciationAudioPluralNominative ps:P443 ?dePronunciationAudioPluralNominativeUrl.
+                                ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q131105.
+                                ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q146786.
+                                ?deSingularNominativeLexicalForm ontolex:representation ?dePluralNominative.
                             }}
+                            
+                            ?enSingularLexicalEntry wikibase:lemma ?enSingular.
+                            ?enSingularLexicalEntry dct:language wd:Q1860.
+                            ?enSingularLexicalEntry wikibase:lexicalCategory wd:Q1084.
+                            ?enSingularLexicalEntry rdf:type ontolex:LexicalEntry.
+                            ?enSingularLexicalEntry ontolex:lexicalForm ?enLexicalForm.
+                            
+                            ?enLexicalForm wikibase:grammaticalFeature wd:Q146786.
+                            ?enLexicalForm ontolex:representation ?enPlural.
+                            
+                            ?deSingularNominativeDefiniteArticleLexicalEntry wikibase:lexicalCategory wd:Q2865743.
+                            ?deSingularNominativeDefiniteArticleLexicalEntry dct:language wd:Q188.
+                            ?deSingularNominativeDefiniteArticleLexicalEntry rdf:type ontolex:LexicalEntry.
+                            ?deSingularNominativeDefiniteArticleLexicalEntry ontolex:lexicalForm ?deSingularNominativeDefiniteArticleLexicalForm.
+                            
+                            ?deSingularNominativeDefiniteArticleLexicalForm wikibase:grammaticalFeature ?deSingularNominativeGrammaticalGender.
+                            ?deSingularNominativeDefiniteArticleLexicalForm wikibase:grammaticalFeature wd:Q131105.
+                            ?deSingularNominativeDefiniteArticleLexicalForm wikibase:grammaticalFeature wd:Q110786.
+                            ?deSingularNominativeDefiniteArticleLexicalForm rdf:type ontolex:Form.
+                            ?deSingularNominativeDefiniteArticleLexicalForm ontolex:representation ?deSingularNominativeDefiniteArticleRepresentation.
+                            
+                            OPTIONAL {{ ?enSingularLexicalEntry wdt:P5831 ?enUsageExample. }}
+                            MINUS {{ ?enLexicalForm wikibase:grammaticalFeature wd:Q1861696. }}
                         }}
-                        SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
                     }}
                 }}
                 '''
