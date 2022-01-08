@@ -20,7 +20,7 @@ import rdflib.plugins.sparql.sparql  # noqa: E402
 
 fields_state_initial = rdflib.Graph().parse(
     data=textwrap.dedent(
-        f'''
+        '''
         PREFIX anki: <https://veyndan.com/foo/>
         PREFIX dct: <http://purl.org/dc/terms/>
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -78,17 +78,17 @@ fields_state_initial = rdflib.Graph().parse(
 def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.notes.Note:
     prepared_query_field_required_language_tag = rdflib.plugins.sparql.prepareQuery(
         textwrap.dedent(
-            f'''
+            '''
             PREFIX anki: <https://veyndan.com/foo/>
             PREFIX dct: <http://purl.org/dc/terms/>
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
-            SELECT ?field ?fieldLabel ?fieldLanguageTag WHERE {{
+            SELECT ?field ?fieldLabel ?fieldLanguageTag WHERE {
                 ?field a anki:field;
                     rdfs:label ?fieldLabel;
                     dct:language ?fieldLanguageTag;
                     anki:required true.
-            }}
+            }
             '''
         )
     )
@@ -109,7 +109,7 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
     # noinspection HttpUrlsUsage,SpellCheckingInspection
     prepared_query = rdflib.plugins.sparql.prepareQuery(
         textwrap.dedent(
-            f'''
+            '''
             PREFIX anki: <https://veyndan.com/foo/>
             PREFIX bd: <http://www.bigdata.com/rdf#>
             PREFIX dct: <http://purl.org/dc/terms/>
@@ -123,7 +123,7 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
             PREFIX wdt: <http://www.wikidata.org/prop/direct/>
             PREFIX wikibase: <http://wikiba.se/ontology#>
 
-            CONSTRUCT {{
+            CONSTRUCT {
                 anki:enSingularField a anki:field;
                     rdfs:label "EN Singular";
                     rdf:value ?enSingular.
@@ -159,9 +159,9 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
                 anki:dePronunciationAudioPluralNominativeUrl1 a anki:field;
                     rdfs:label "DE Plural Nominative Pronunciation";
                     rdf:value ?dePronunciationAudioPluralNominativeUrl1.
-            }}
-            WHERE {{
-                SELECT DISTINCT ?enPlural ?enUsageExample ?deSingularNominativeDefiniteArticleRepresentation (MIN(?dePronunciationAudioSingularNominativeUrl) AS ?dePronunciationAudioSingularNominativeUrl1) (MIN(?dePluralNominative) AS ?dePluralNominative1) (MIN(?dePronunciationAudioPluralNominativeUrl) AS ?dePronunciationAudioPluralNominativeUrl1) WHERE {{
+            }
+            WHERE {
+                SELECT DISTINCT ?enPlural ?enUsageExample ?deSingularNominativeDefiniteArticleRepresentation (MIN(?dePronunciationAudioSingularNominativeUrl) AS ?dePronunciationAudioSingularNominativeUrl1) (MIN(?dePluralNominative) AS ?dePluralNominative1) (MIN(?dePronunciationAudioPluralNominativeUrl) AS ?dePronunciationAudioPluralNominativeUrl1) WHERE {
                     ?enSingularField a anki:field;
                         rdfs:label "EN Singular";
                         rdf:value ?enSingular.
@@ -170,7 +170,7 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
                         rdfs:label "DE Singular Nominative";
                         rdf:value ?deSingularNominative.
                     
-                    SERVICE <https://query.wikidata.org/sparql> {{
+                    SERVICE <https://query.wikidata.org/sparql> {
                         hint:Query hint:optimizer "None" .
 
                         ?deSingularNominativeLexicalEntry wikibase:lemma ?deSingularNominative.
@@ -179,20 +179,20 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
                         ?deSingularNominativeLexicalEntry rdf:type ontolex:LexicalEntry.
                         ?deSingularNominativeLexicalEntry ontolex:lexicalForm ?deSingularNominativeLexicalForm.
                         
-                        {{
+                        {
                             ?deSingularNominativeLexicalForm p:P443 ?dePronunciationAudioSingularNominative.
                             ?dePronunciationAudioSingularNominative ps:P443 ?dePronunciationAudioSingularNominativeUrl.
                             ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q131105.
                             ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q110786.
-                        }}
+                        }
                         UNION
-                        {{
+                        {
                             ?deSingularNominativeLexicalForm p:P443 ?dePronunciationAudioPluralNominative.
                             ?dePronunciationAudioPluralNominative ps:P443 ?dePronunciationAudioPluralNominativeUrl.
                             ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q131105.
                             ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q146786.
                             ?deSingularNominativeLexicalForm ontolex:representation ?dePluralNominative.
-                        }}
+                        }
                         
                         ?enSingularLexicalEntry wikibase:lemma ?enSingular.
                         ?enSingularLexicalEntry dct:language wd:Q1860.
@@ -214,11 +214,11 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
                         ?deSingularNominativeDefiniteArticleLexicalForm rdf:type ontolex:Form.
                         ?deSingularNominativeDefiniteArticleLexicalForm ontolex:representation ?deSingularNominativeDefiniteArticleRepresentation.
                         
-                        OPTIONAL {{ ?enSingularLexicalEntry wdt:P5831 ?enUsageExample. }}
-                        MINUS {{ ?enLexicalForm wikibase:grammaticalFeature wd:Q1861696. }}
-                    }}
-                }}
-            }}
+                        OPTIONAL { ?enSingularLexicalEntry wdt:P5831 ?enUsageExample. }
+                        MINUS { ?enLexicalForm wikibase:grammaticalFeature wd:Q1861696. }
+                    }
+                }
+            }
             '''
         )
     )
@@ -228,14 +228,14 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
     query_result2 = query_result.graph.query(
         rdflib.plugins.sparql.prepareQuery(
             textwrap.dedent(
-                f'''
+                '''
                 PREFIX anki: <https://veyndan.com/foo/>
                 
-                SELECT ?fieldLabel ?fieldValue WHERE {{
+                SELECT ?fieldLabel ?fieldValue WHERE {
                     [] a anki:field;
                         rdfs:label ?fieldLabel;
                         rdf:value ?fieldValue.
-                }}
+                }
                 '''
             )
         )
