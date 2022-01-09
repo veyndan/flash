@@ -75,6 +75,44 @@ fields_state_initial = rdflib.Graph().parse(
 )
 
 
+def requirement_hints(editor: aqt.editor.Editor) -> None:
+    """
+    Add hints to the GUI to get the initial state of the note into a form (fields_state_initial) that can be parsed by
+    myankiplugin.
+    """
+    prepared_query_field_required = rdflib.plugins.sparql.prepareQuery(
+        textwrap.dedent(
+            '''
+            PREFIX anki: <https://veyndan.com/foo/>
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    
+            SELECT ?fieldLabel WHERE {
+                [] a anki:field;
+                    anki:required true;
+                    rdfs:label ?fieldLabel.
+            }
+            '''
+        )
+    )
+
+    for label in [binding['fieldLabel'] for binding in fields_state_initial.query(prepared_query_field_required)]:
+        label_value: str = label.value
+
+        editor.web.page().runJavaScript(
+            textwrap.dedent(
+                f"""
+                [...document.querySelectorAll('#fields>div>div:first-child')]
+                    .map(value => value.querySelector('.fieldname'))
+                    .filter(field_name => field_name.innerHTML === '{label_value}')
+                    .forEach(field_name => field_name.insertAdjacentText('afterend', 'Required'));
+                """
+            )
+        )
+
+
+aqt.gui_hooks.editor_did_load_note.append(requirement_hints)
+
+
 def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.notes.Note:
     prepared_query_field_required_language_tag = rdflib.plugins.sparql.prepareQuery(
         textwrap.dedent(
