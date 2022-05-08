@@ -11,8 +11,7 @@ import aqt.operations.note
 import aqt.utils
 import aqt.webview
 
-sys.path.append('/Users/veyndan/IdeaProjects/myankiplugin/stdlib')  # Required until 3.1.50 is released
-sys.path.append('/Users/veyndan/IdeaProjects/myankiplugin/.venv/lib/python3.9/site-packages')
+sys.path.append('/Users/veyndan/Development/myankiplugin/.venv/lib/python3.9/site-packages')
 
 import rdflib  # noqa: E402
 import rdflib.plugins.sparql  # noqa: E402
@@ -302,7 +301,6 @@ def on_generate_clicked(editor: aqt.editor.Editor):
         success=editor.set_note,
     )
 
-    # QueryOp.with_progress() was broken until Anki 2.1.50 (https://github.com/ankitects/addon-docs/search?q=2.1.50)
     query_op.with_progress().run_in_background()
 
 
