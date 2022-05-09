@@ -100,10 +100,9 @@ def requirement_hints(editor: aqt.editor.Editor) -> None:
         editor.web.page().runJavaScript(
             textwrap.dedent(
                 f"""
-                [...document.querySelectorAll('#fields>div>div:first-child')]
-                    .map(value => value.querySelector('.fieldname'))
+                [...document.querySelectorAll('.label-name')]
                     .filter(field_name => field_name.innerHTML === '{label_value}')
-                    .forEach(field_name => field_name.insertAdjacentText('afterend', 'Required'));
+                    .forEach(field_name => field_name.insertAdjacentText('afterend', ' [Required]'));
                 """
             )
         )
