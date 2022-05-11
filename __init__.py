@@ -1,3 +1,4 @@
+import urllib.request
 import sys
 import textwrap
 import typing
@@ -17,61 +18,10 @@ import rdflib  # noqa: E402
 import rdflib.plugins.sparql  # noqa: E402
 import rdflib.plugins.sparql.sparql  # noqa: E402
 
-fields_state_initial = rdflib.Graph().parse(
-    data=textwrap.dedent(
-        '''
-        PREFIX anki: <https://veyndan.com/foo/>
-        PREFIX dct: <http://purl.org/dc/terms/>
-        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        
-        anki:enSingular a anki:field;
-            rdfs:label "EN Singular";
-            dct:language "en";
-            anki:regex ".*";
-            anki:required true.
-        
-        anki:enPluralField a anki:field;
-            rdfs:label "EN Plural";
-            dct:language "en";
-            anki:required false.
-        
-        anki:enUsageExampleField a anki:field;
-            rdfs:label "EN Usage Example";
-            dct:language "en";
-            anki:required false.
-        
-        anki:deSingularNominativeField a anki:field;
-            rdfs:label "DE Singular Nominative";
-            dct:language "de";
-            anki:required true.
-        
-        anki:deSingularNominativeDefiniteArticleRepresentation a anki:field;
-            rdfs:label "DE Singular Nominative Definite Article";
-            dct:language "de";
-            anki:allowedValue "der", "die", "das";
-            anki:required false.
-        
-        anki:dePronunciationAudioSingularNominativeUrl1 a anki:field;
-            rdfs:label "DE Singular Nominative Pronunciation";
-            anki:required false.
-        
-        anki:dePluralNominative1 a anki:field;
-            rdfs:label "DE Plural Nominative";
-            dct:language "de";
-            anki:required false.
-        
-        anki:dePluralNominativeDefiniteArticleRepresentation a anki:field;
-            rdfs:label "DE Plural Nominative Definite Article";
-            dct:language "de";
-            anki:required false.
-        
-        anki:dePronunciationAudioPluralNominativeUrl1 a anki:field;
-            rdfs:label "DE Plural Nominative Pronunciation";
-            anki:required false.
-        '''
-    )
-)
+config = aqt.mw.addonManager.getConfig(__name__)
+
+with urllib.request.urlopen(str(config['url'])) as response:
+    fields_state_initial = rdflib.Graph().parse(data=response.read())
 
 
 def requirement_hints(editor: aqt.editor.Editor) -> None:
@@ -142,122 +92,24 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
             .add((field, rdflib.RDFS.label, field_label)) \
             .add((field, rdflib.RDF.value, rdflib.Literal(note[field_label.value], lang=binding['fieldLanguageTag'].value)))
 
-    # noinspection HttpUrlsUsage,SpellCheckingInspection
-    prepared_query = rdflib.plugins.sparql.prepareQuery(
+    prepared_query_query_location = rdflib.plugins.sparql.prepareQuery(
         textwrap.dedent(
             '''
             PREFIX anki: <https://veyndan.com/foo/>
-            PREFIX bd: <http://www.bigdata.com/rdf#>
-            PREFIX dct: <http://purl.org/dc/terms/>
-            PREFIX hint: <http://www.bigdata.com/queryHints#>
-            PREFIX ontolex: <http://www.w3.org/ns/lemon/ontolex#>
-            PREFIX p: <http://www.wikidata.org/prop/>
-            PREFIX ps: <http://www.wikidata.org/prop/statement/>
-            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            PREFIX wd: <http://www.wikidata.org/entity/>
-            PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-            PREFIX wikibase: <http://wikiba.se/ontology#>
-
-            CONSTRUCT {
-                anki:enSingularField a anki:field;
-                    rdfs:label "EN Singular";
-                    rdf:value ?enSingular.
-
-                anki:enPluralField a anki:field;
-                    rdfs:label "EN Plural";
-                    rdf:value ?enPlural.
-
-                anki:enUsageExampleField a anki:field;
-                    rdfs:label "EN Usage Example";
-                    rdf:value ?enUsageExample.
-
-                anki:deSingularNominativeField a anki:field;
-                    rdfs:label "DE Singular Nominative";
-                    rdf:value ?deSingularNominative.
-
-                anki:deSingularNominativeDefiniteArticleRepresentation a anki:field;
-                    rdfs:label "DE Singular Nominative Definite Article";
-                    rdf:value ?deSingularNominativeDefiniteArticleRepresentation.
-
-                anki:dePronunciationAudioSingularNominativeUrl1 a anki:field;
-                    rdfs:label "DE Singular Nominative Pronunciation";
-                    rdf:value ?dePronunciationAudioSingularNominativeUrl1.
-
-                anki:dePluralNominative1 a anki:field;
-                    rdfs:label "DE Plural Nominative";
-                    rdf:value ?dePluralNominative1.
-                
-                anki:dePluralNominativeDefiniteArticleRepresentation a anki:field;
-                    rdfs:label "DE Plural Nominative Definite Article";
-                    rdf:value "die".
-                
-                anki:dePronunciationAudioPluralNominativeUrl1 a anki:field;
-                    rdfs:label "DE Plural Nominative Pronunciation";
-                    rdf:value ?dePronunciationAudioPluralNominativeUrl1.
-            }
-            WHERE {
-                SELECT DISTINCT ?enPlural ?enUsageExample ?deSingularNominativeDefiniteArticleRepresentation (MIN(?dePronunciationAudioSingularNominativeUrl) AS ?dePronunciationAudioSingularNominativeUrl1) (MIN(?dePluralNominative) AS ?dePluralNominative1) (MIN(?dePronunciationAudioPluralNominativeUrl) AS ?dePronunciationAudioPluralNominativeUrl1) WHERE {
-                    ?enSingularField a anki:field;
-                        rdfs:label "EN Singular";
-                        rdf:value ?enSingular.
-   
-                    ?deSingularNominativeField a anki:field;
-                        rdfs:label "DE Singular Nominative";
-                        rdf:value ?deSingularNominative.
-                    
-                    SERVICE <https://query.wikidata.org/sparql> {
-                        hint:Query hint:optimizer "None" .
-
-                        ?deSingularNominativeLexicalEntry wikibase:lemma ?deSingularNominative.
-                        ?deSingularNominativeLexicalEntry dct:language wd:Q188.
-                        ?deSingularNominativeLexicalEntry wdt:P5185 ?deSingularNominativeGrammaticalGender.
-                        ?deSingularNominativeLexicalEntry rdf:type ontolex:LexicalEntry.
-                        ?deSingularNominativeLexicalEntry ontolex:lexicalForm ?deSingularNominativeLexicalForm.
-                        
-                        {
-                            ?deSingularNominativeLexicalForm p:P443 ?dePronunciationAudioSingularNominative.
-                            ?dePronunciationAudioSingularNominative ps:P443 ?dePronunciationAudioSingularNominativeUrl.
-                            ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q131105.
-                            ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q110786.
-                        }
-                        UNION
-                        {
-                            ?deSingularNominativeLexicalForm p:P443 ?dePronunciationAudioPluralNominative.
-                            ?dePronunciationAudioPluralNominative ps:P443 ?dePronunciationAudioPluralNominativeUrl.
-                            ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q131105.
-                            ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q146786.
-                            ?deSingularNominativeLexicalForm ontolex:representation ?dePluralNominative.
-                        }
-                        
-                        ?enSingularLexicalEntry wikibase:lemma ?enSingular.
-                        ?enSingularLexicalEntry dct:language wd:Q1860.
-                        ?enSingularLexicalEntry wikibase:lexicalCategory wd:Q1084.
-                        ?enSingularLexicalEntry rdf:type ontolex:LexicalEntry.
-                        ?enSingularLexicalEntry ontolex:lexicalForm ?enLexicalForm.
-                        
-                        ?enLexicalForm wikibase:grammaticalFeature wd:Q146786.
-                        ?enLexicalForm ontolex:representation ?enPlural.
-                        
-                        ?deSingularNominativeDefiniteArticleLexicalEntry wikibase:lexicalCategory wd:Q2865743.
-                        ?deSingularNominativeDefiniteArticleLexicalEntry dct:language wd:Q188.
-                        ?deSingularNominativeDefiniteArticleLexicalEntry rdf:type ontolex:LexicalEntry.
-                        ?deSingularNominativeDefiniteArticleLexicalEntry ontolex:lexicalForm ?deSingularNominativeDefiniteArticleLexicalForm.
-                        
-                        ?deSingularNominativeDefiniteArticleLexicalForm wikibase:grammaticalFeature ?deSingularNominativeGrammaticalGender.
-                        ?deSingularNominativeDefiniteArticleLexicalForm wikibase:grammaticalFeature wd:Q131105.
-                        ?deSingularNominativeDefiniteArticleLexicalForm wikibase:grammaticalFeature wd:Q110786.
-                        ?deSingularNominativeDefiniteArticleLexicalForm rdf:type ontolex:Form.
-                        ?deSingularNominativeDefiniteArticleLexicalForm ontolex:representation ?deSingularNominativeDefiniteArticleRepresentation.
-                        
-                        OPTIONAL { ?enSingularLexicalEntry wdt:P5831 ?enUsageExample. }
-                        MINUS { ?enLexicalForm wikibase:grammaticalFeature wd:Q1861696. }
-                    }
-                }
+    
+            SELECT ?queryLocation WHERE {
+                anki:foo anki:bar ?queryLocation.
             }
             '''
         )
     )
+
+    for binding in fields_state_initial.query(prepared_query_query_location):
+        query_location: rdflib.URIRef = binding['queryLocation']
+
+    # noinspection HttpUrlsUsage,SpellCheckingInspection
+    with urllib.request.urlopen(query_location) as response:
+        prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
 
     query_result = fields_state_initial_with_required.query(prepared_query)
 
