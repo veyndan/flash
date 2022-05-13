@@ -20,15 +20,20 @@ import rdflib.plugins.sparql.sparql  # noqa: E402
 
 config = aqt.mw.addonManager.getConfig(__name__)
 
-with urllib.request.urlopen(str(config['url'])) as response:
-    fields_state_initial = rdflib.Graph().parse(data=response.read())
-
 
 def requirement_hints(editor: aqt.editor.Editor) -> None:
     """
     Add hints to the GUI to get the initial state of the note into a form (fields_state_initial) that can be parsed by
     myankiplugin.
     """
+    note = editor.note
+    if note is None:
+        aqt.utils.showInfo("No note found.")
+        return
+    actual_note: anki.notes.Note = note
+    with urllib.request.urlopen(next(query for query in config['urls'] if query['noteTypeId'] == actual_note.mid)['url']) as response:
+        fields_state_initial = rdflib.Graph().parse(data=response.read())
+
     prepared_query_field_required = rdflib.plugins.sparql.prepareQuery(
         textwrap.dedent(
             '''
@@ -62,6 +67,9 @@ aqt.gui_hooks.editor_did_load_note.append(requirement_hints)
 
 
 def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.notes.Note:
+    with urllib.request.urlopen(next(query for query in config['urls'] if query['noteTypeId'] == note.mid)['url']) as response:
+        fields_state_initial = rdflib.Graph().parse(data=response.read())
+
     prepared_query_field_required_language_tag = rdflib.plugins.sparql.prepareQuery(
         textwrap.dedent(
             '''
