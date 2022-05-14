@@ -14,49 +14,63 @@ PREFIX wikibase: <http://wikiba.se/ontology#>
 CONSTRUCT {
     anki:enSingularField a anki:field;
         rdfs:label "EN Singular";
+        anki:regex ".*";
+        anki:required true;
         rdf:value ?enSingular.
 
     anki:enPluralField a anki:field;
         rdfs:label "EN Plural";
+        anki:required false;
         rdf:value ?enPlural.
 
     anki:enUsageExampleField a anki:field;
         rdfs:label "EN Usage Example";
+        anki:required false;
         rdf:value ?enUsageExample.
 
     anki:deSingularNominativeField a anki:field;
         rdfs:label "DE Singular Nominative";
+        anki:required true;
         rdf:value ?deSingularNominative.
 
     anki:deSingularNominativeDefiniteArticleRepresentation a anki:field;
         rdfs:label "DE Singular Nominative Definite Article";
+        anki:allowedValue "der", "die", "das";
+        anki:required false;
         rdf:value ?deSingularNominativeDefiniteArticleRepresentation.
 
     anki:dePronunciationAudioSingularNominativeUrl1 a anki:field;
         rdfs:label "DE Singular Nominative Pronunciation";
+        anki:required false;
         rdf:value ?dePronunciationAudioSingularNominativeUrl1.
 
     anki:dePluralNominative1 a anki:field;
         rdfs:label "DE Plural Nominative";
+        anki:required false;
         rdf:value ?dePluralNominative1.
 
     anki:dePluralNominativeDefiniteArticleRepresentation a anki:field;
         rdfs:label "DE Plural Nominative Definite Article";
+        anki:required false;
         rdf:value "die".
 
     anki:dePronunciationAudioPluralNominativeUrl1 a anki:field;
         rdfs:label "DE Plural Nominative Pronunciation";
+        anki:required false;
         rdf:value ?dePronunciationAudioPluralNominativeUrl1.
 }
 WHERE {
-    SELECT DISTINCT ?enPlural ?enUsageExample ?deSingularNominativeDefiniteArticleRepresentation (MIN(?dePronunciationAudioSingularNominativeUrl) AS ?dePronunciationAudioSingularNominativeUrl1) (MIN(?dePluralNominative) AS ?dePluralNominative1) (MIN(?dePronunciationAudioPluralNominativeUrl) AS ?dePronunciationAudioPluralNominativeUrl1) WHERE {
+    SELECT DISTINCT ?enSingular ?enPlural ?enUsageExample ?deSingularNominative ?deSingularNominativeDefiniteArticleRepresentation (MIN(?dePronunciationAudioSingularNominativeUrl) AS ?dePronunciationAudioSingularNominativeUrl1) (MIN(?dePluralNominative) AS ?dePluralNominative1) (MIN(?dePronunciationAudioPluralNominativeUrl) AS ?dePronunciationAudioPluralNominativeUrl1) WHERE {
         ?enSingularField a anki:field;
             rdfs:label "EN Singular";
-            rdf:value ?enSingular.
+            rdf:value ?enSingularUnlocalized.
 
         ?deSingularNominativeField a anki:field;
             rdfs:label "DE Singular Nominative";
-            rdf:value ?deSingularNominative.
+            rdf:value ?deSingularNominativeUnlocalized.
+
+        BIND(STRLANG(?enSingularUnlocalized, "en") AS ?enSingular)
+        BIND(STRLANG(?deSingularNominativeUnlocalized, "de") AS ?deSingularNominative)
 
         SERVICE <https://query.wikidata.org/sparql> {
             hint:Query hint:optimizer "None" .

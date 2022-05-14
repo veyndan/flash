@@ -31,8 +31,12 @@ def requirement_hints(editor: aqt.editor.Editor) -> None:
         aqt.utils.showInfo("No note found.")
         return
     actual_note: anki.notes.Note = note
+
+    fields_state_initial = rdflib.Graph()
     with urllib.request.urlopen(next(query for query in config['urls'] if query['noteTypeId'] == actual_note.mid)['url']) as response:
-        fields_state_initial = rdflib.Graph().parse(data=response.read())
+        prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
+
+    query_result = fields_state_initial.query(prepared_query)
 
     prepared_query_field_required = rdflib.plugins.sparql.prepareQuery(
         textwrap.dedent(
@@ -49,7 +53,7 @@ def requirement_hints(editor: aqt.editor.Editor) -> None:
         )
     )
 
-    for label in [binding['fieldLabel'] for binding in fields_state_initial.query(prepared_query_field_required)]:
+    for label in [binding['fieldLabel'] for binding in query_result.graph.query(prepared_query_field_required)]:
         label_value: str = label.value
 
         editor.web.page().runJavaScript(
@@ -67,59 +71,19 @@ aqt.gui_hooks.editor_did_load_note.append(requirement_hints)
 
 
 def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.notes.Note:
+    fields_state_initial = rdflib.Graph()
+    for (label, value) in note.items():
+        import uuid
+        field_subject = rdflib.URIRef('https://veyndan.com/foo/' + uuid.uuid4().hex)  # TODO For some reason I can't use blank node
+        fields_state_initial \
+            .add((field_subject, rdflib.RDF.type, rdflib.URIRef('https://veyndan.com/foo/field'))) \
+            .add((field_subject, rdflib.RDFS.label, rdflib.Literal(label))) \
+            .add((field_subject, rdflib.RDF.value, rdflib.Literal(value)))
+
     with urllib.request.urlopen(next(query for query in config['urls'] if query['noteTypeId'] == note.mid)['url']) as response:
-        fields_state_initial = rdflib.Graph().parse(data=response.read())
-
-    prepared_query_field_required_language_tag = rdflib.plugins.sparql.prepareQuery(
-        textwrap.dedent(
-            '''
-            PREFIX anki: <https://veyndan.com/foo/>
-            PREFIX dct: <http://purl.org/dc/terms/>
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-    
-            SELECT ?field ?fieldLabel ?fieldLanguageTag WHERE {
-                ?field a anki:field;
-                    rdfs:label ?fieldLabel;
-                    dct:language ?fieldLanguageTag;
-                    anki:required true.
-            }
-            '''
-        )
-    )
-
-    fields_state_initial_with_required = rdflib.Graph()
-    fields_state_initial_with_required += fields_state_initial
-
-    # This is only necessary due to the limitation (in my knowledge of RDF or RDF itself) that we can't dynamically
-    #  specify the language tag, e.g., as a separate RDF triple (https://www.w3.org/wiki/Languages_as_RDF_Resources).
-    for binding in fields_state_initial.query(prepared_query_field_required_language_tag):
-        field: rdflib.URIRef = binding['field']
-        field_label: rdflib.Literal = binding['fieldLabel']
-        fields_state_initial_with_required += rdflib.Graph() \
-            .add((field, rdflib.RDF.type, rdflib.URIRef('https://veyndan.com/foo/field'))) \
-            .add((field, rdflib.RDFS.label, field_label)) \
-            .add((field, rdflib.RDF.value, rdflib.Literal(note[field_label.value], lang=binding['fieldLanguageTag'].value)))
-
-    prepared_query_query_location = rdflib.plugins.sparql.prepareQuery(
-        textwrap.dedent(
-            '''
-            PREFIX anki: <https://veyndan.com/foo/>
-    
-            SELECT ?queryLocation WHERE {
-                anki:foo anki:bar ?queryLocation.
-            }
-            '''
-        )
-    )
-
-    for binding in fields_state_initial.query(prepared_query_query_location):
-        query_location: rdflib.URIRef = binding['queryLocation']
-
-    # noinspection HttpUrlsUsage,SpellCheckingInspection
-    with urllib.request.urlopen(query_location) as response:
         prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
 
-    query_result = fields_state_initial_with_required.query(prepared_query)
+    query_result = fields_state_initial.query(prepared_query)
 
     query_result2 = query_result.graph.query(
         rdflib.plugins.sparql.prepareQuery(

@@ -5,10 +5,12 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 CONSTRUCT {
     anki:text a anki:field;
         rdfs:label "Text";
+        anki:required true;
         rdf:value ?text.
 
     anki:uppercaseText a anki:field;
         rdfs:label "Uppercase Text";
+        anki:required false;
         rdf:value ?uppercaseText.
 }
 WHERE {
