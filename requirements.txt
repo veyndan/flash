@@ -1,5 +1,5 @@
-anki==2.1.51
-aqt==2.1.51
+anki==2.1.52
+aqt==2.1.52
 attrs==21.4.0
 beautifulsoup4==4.11.1
 certifi==2021.10.8
@@ -20,7 +20,7 @@ mypy==0.950
 mypy-extensions==0.4.3
 orjson==3.6.8
 protobuf==3.20.1
-pyparsing==3.0.8
+pyparsing==3.0.9
 PyQt6==6.3.0
 PyQt6-Qt6==6.3.0
 PyQt6-sip==13.3.1
