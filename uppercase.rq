@@ -6,7 +6,7 @@ CONSTRUCT {
     anki:text a anki:field;
         rdfs:label "Text";
         anki:required true;
-        rdf:value ?text.
+        rdf:value ?text_or_empty.
 
     anki:uppercaseText a anki:field;
         rdfs:label "Uppercase Text";
@@ -14,9 +14,12 @@ CONSTRUCT {
         rdf:value ?uppercaseText.
 }
 WHERE {
-    SELECT ?text (UCASE(?text) as ?uppercaseText) WHERE {
-        ?textField a anki:field;
-            rdfs:label "Text";
-            rdf:value ?text.
+    SELECT ?text_or_empty (UCASE(?text) AS ?uppercaseText) WHERE {
+        OPTIONAL {
+            ?textField a anki:field;
+                rdfs:label "Text";
+                rdf:value ?text.
+        }
+        BIND(COALESCE(?text, "") AS ?text_or_empty)
     }
 }
