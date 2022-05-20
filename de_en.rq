@@ -16,28 +16,28 @@ CONSTRUCT {
         rdfs:label "EN Singular";
         anki:regex ".*";
         anki:required true;
-        rdf:value ?enSingular.
+        rdf:value ?enSingularOrEmpty.
 
     anki:enPluralField a anki:field;
         rdfs:label "EN Plural";
         anki:required false;
-        rdf:value ?enPlural.
+        rdf:value ?enPluralOrEmpty.
 
     anki:enUsageExampleField a anki:field;
         rdfs:label "EN Usage Example";
         anki:required false;
-        rdf:value ?enUsageExample.
+        rdf:value ?enUsageExampleOrEmpty.
 
     anki:deSingularNominativeField a anki:field;
         rdfs:label "DE Singular Nominative";
         anki:required true;
-        rdf:value ?deSingularNominative.
+        rdf:value ?deSingularNominativeOrEmpty.
 
     anki:deSingularNominativeDefiniteArticleRepresentation a anki:field;
         rdfs:label "DE Singular Nominative Definite Article";
         anki:allowedValue "der", "die", "das";
         anki:required false;
-        rdf:value ?deSingularNominativeDefiniteArticleRepresentation.
+        rdf:value ?deSingularNominativeDefiniteArticleRepresentationOrEmpty.
 
     anki:dePronunciationAudioSingularNominativeUrl1 a anki:field;
         rdfs:label "DE Singular Nominative Pronunciation";
@@ -58,66 +58,86 @@ CONSTRUCT {
         rdfs:label "DE Plural Nominative Pronunciation";
         anki:required false;
         rdf:value ?dePronunciationAudioPluralNominativeUrl1.
+
+    anki:templateSingular a anki:template;
+        rdfs:label "Singular";
+        anki:qfmt "{{EN Singular}}\n<br/>\n<span class=\"form\">Singular</span>\n<br/>\n<span class=\"en-usage-example\">{{EN Usage Example}}</span>\n{{type:DE Singular Nominative Definite Article}}\n{{type:DE Singular Nominative}}";
+        anki:afmt "{{FrontSide}}\n\n<hr id=answer>\n\n{{DE Singular Nominative Definite Article}} {{DE Singular Nominative}}\n\n{{DE Singular Nominative Pronunciation}}\n".
+
+    anki:templatePlural a anki:template;
+        rdfs:label "Plural";
+        anki:qfmt "{{EN Plural}}\n<br/>\n<span class=\"form\">Plural</span>\n<br/>\n<span class=\"en-usage-example\">{{EN Usage Example}}</span>\n\n{{type:DE Plural Nominative Definite Article}}\n{{type:DE Plural Nominative}}";
+        anki:afmt "{{FrontSide}}\n\n<hr id=answer>\n\n{{DE Plural Nominative Definite Article}} {{DE Plural Nominative}}\n\n{{DE Plural Nominative Pronunciation}}\n".
 }
 WHERE {
-    SELECT DISTINCT ?enSingular ?enPlural ?enUsageExample ?deSingularNominative ?deSingularNominativeDefiniteArticleRepresentation (MIN(?dePronunciationAudioSingularNominativeUrl) AS ?dePronunciationAudioSingularNominativeUrl1) (MIN(?dePluralNominative) AS ?dePluralNominative1) (MIN(?dePronunciationAudioPluralNominativeUrl) AS ?dePronunciationAudioPluralNominativeUrl1) WHERE {
-        ?enSingularField a anki:field;
-            rdfs:label "EN Singular";
-            rdf:value ?enSingularUnlocalized.
+    SELECT DISTINCT ?enSingularOrEmpty ?enPluralOrEmpty ?enUsageExampleOrEmpty ?deSingularNominativeOrEmpty ?deSingularNominativeDefiniteArticleRepresentationOrEmpty (MIN(?dePronunciationAudioSingularNominativeUrlOrEmpty) AS ?dePronunciationAudioSingularNominativeUrl1) (MAX(?dePluralNominativeOrEmpty) AS ?dePluralNominative1) (MIN(?dePronunciationAudioPluralNominativeUrlOrEmpty) AS ?dePronunciationAudioPluralNominativeUrl1) WHERE {
+    	OPTIONAL {
+            ?enSingularField a anki:field;
+                rdfs:label "EN Singular";
+                rdf:value ?enSingularUnlocalized.
 
-        ?deSingularNominativeField a anki:field;
-            rdfs:label "DE Singular Nominative";
-            rdf:value ?deSingularNominativeUnlocalized.
+            ?deSingularNominativeField a anki:field;
+                rdfs:label "DE Singular Nominative";
+                rdf:value ?deSingularNominativeUnlocalized.
 
-        BIND(STRLANG(?enSingularUnlocalized, "en") AS ?enSingular)
-        BIND(STRLANG(?deSingularNominativeUnlocalized, "de") AS ?deSingularNominative)
+            BIND(STRLANG(?enSingularUnlocalized, "en") AS ?enSingular)
+            BIND(STRLANG(?deSingularNominativeUnlocalized, "de") AS ?deSingularNominative)
 
-        SERVICE <https://query.wikidata.org/sparql> {
-            hint:Query hint:optimizer "None" .
+            SERVICE <https://query.wikidata.org/sparql> {
+                hint:Query hint:optimizer "None" .
 
-            ?deSingularNominativeLexicalEntry wikibase:lemma ?deSingularNominative.
-            ?deSingularNominativeLexicalEntry dct:language wd:Q188.
-            ?deSingularNominativeLexicalEntry wdt:P5185 ?deSingularNominativeGrammaticalGender.
-            ?deSingularNominativeLexicalEntry rdf:type ontolex:LexicalEntry.
-            ?deSingularNominativeLexicalEntry ontolex:lexicalForm ?deSingularNominativeLexicalForm.
+                ?deSingularNominativeLexicalEntry wikibase:lemma ?deSingularNominative.
+                ?deSingularNominativeLexicalEntry dct:language wd:Q188.
+                ?deSingularNominativeLexicalEntry wdt:P5185 ?deSingularNominativeGrammaticalGender.
+                ?deSingularNominativeLexicalEntry rdf:type ontolex:LexicalEntry.
+                ?deSingularNominativeLexicalEntry ontolex:lexicalForm ?deSingularNominativeLexicalForm.
 
-            {
-                ?deSingularNominativeLexicalForm p:P443 ?dePronunciationAudioSingularNominative.
-                ?dePronunciationAudioSingularNominative ps:P443 ?dePronunciationAudioSingularNominativeUrl.
-                ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q131105.
-                ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q110786.
+                {
+                    ?deSingularNominativeLexicalForm p:P443 ?dePronunciationAudioSingularNominative.
+                    ?dePronunciationAudioSingularNominative ps:P443 ?dePronunciationAudioSingularNominativeUrl.
+                    ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q131105.
+                    ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q110786.
+                }
+                UNION
+                {
+                    ?deSingularNominativeLexicalForm p:P443 ?dePronunciationAudioPluralNominative.
+                    ?dePronunciationAudioPluralNominative ps:P443 ?dePronunciationAudioPluralNominativeUrl.
+                    ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q131105.
+                    ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q146786.
+                    ?deSingularNominativeLexicalForm ontolex:representation ?dePluralNominative.
+                }
+
+                ?enSingularLexicalEntry wikibase:lemma ?enSingular.
+                ?enSingularLexicalEntry dct:language wd:Q1860.
+                ?enSingularLexicalEntry wikibase:lexicalCategory wd:Q1084.
+                ?enSingularLexicalEntry rdf:type ontolex:LexicalEntry.
+                ?enSingularLexicalEntry ontolex:lexicalForm ?enLexicalForm.
+
+                ?enLexicalForm wikibase:grammaticalFeature wd:Q146786.
+                ?enLexicalForm ontolex:representation ?enPlural.
+
+                ?deSingularNominativeDefiniteArticleLexicalEntry wikibase:lexicalCategory wd:Q2865743.
+                ?deSingularNominativeDefiniteArticleLexicalEntry dct:language wd:Q188.
+                ?deSingularNominativeDefiniteArticleLexicalEntry rdf:type ontolex:LexicalEntry.
+                ?deSingularNominativeDefiniteArticleLexicalEntry ontolex:lexicalForm ?deSingularNominativeDefiniteArticleLexicalForm.
+
+                ?deSingularNominativeDefiniteArticleLexicalForm wikibase:grammaticalFeature ?deSingularNominativeGrammaticalGender.
+                ?deSingularNominativeDefiniteArticleLexicalForm wikibase:grammaticalFeature wd:Q131105.
+                ?deSingularNominativeDefiniteArticleLexicalForm wikibase:grammaticalFeature wd:Q110786.
+                ?deSingularNominativeDefiniteArticleLexicalForm rdf:type ontolex:Form.
+                ?deSingularNominativeDefiniteArticleLexicalForm ontolex:representation ?deSingularNominativeDefiniteArticleRepresentation.
+
+                OPTIONAL { ?enSingularLexicalEntry wdt:P5831 ?enUsageExample. }
+                MINUS { ?enLexicalForm wikibase:grammaticalFeature wd:Q1861696. }
             }
-            UNION
-            {
-                ?deSingularNominativeLexicalForm p:P443 ?dePronunciationAudioPluralNominative.
-                ?dePronunciationAudioPluralNominative ps:P443 ?dePronunciationAudioPluralNominativeUrl.
-                ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q131105.
-                ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q146786.
-                ?deSingularNominativeLexicalForm ontolex:representation ?dePluralNominative.
-            }
-
-            ?enSingularLexicalEntry wikibase:lemma ?enSingular.
-            ?enSingularLexicalEntry dct:language wd:Q1860.
-            ?enSingularLexicalEntry wikibase:lexicalCategory wd:Q1084.
-            ?enSingularLexicalEntry rdf:type ontolex:LexicalEntry.
-            ?enSingularLexicalEntry ontolex:lexicalForm ?enLexicalForm.
-
-            ?enLexicalForm wikibase:grammaticalFeature wd:Q146786.
-            ?enLexicalForm ontolex:representation ?enPlural.
-
-            ?deSingularNominativeDefiniteArticleLexicalEntry wikibase:lexicalCategory wd:Q2865743.
-            ?deSingularNominativeDefiniteArticleLexicalEntry dct:language wd:Q188.
-            ?deSingularNominativeDefiniteArticleLexicalEntry rdf:type ontolex:LexicalEntry.
-            ?deSingularNominativeDefiniteArticleLexicalEntry ontolex:lexicalForm ?deSingularNominativeDefiniteArticleLexicalForm.
-
-            ?deSingularNominativeDefiniteArticleLexicalForm wikibase:grammaticalFeature ?deSingularNominativeGrammaticalGender.
-            ?deSingularNominativeDefiniteArticleLexicalForm wikibase:grammaticalFeature wd:Q131105.
-            ?deSingularNominativeDefiniteArticleLexicalForm wikibase:grammaticalFeature wd:Q110786.
-            ?deSingularNominativeDefiniteArticleLexicalForm rdf:type ontolex:Form.
-            ?deSingularNominativeDefiniteArticleLexicalForm ontolex:representation ?deSingularNominativeDefiniteArticleRepresentation.
-
-            OPTIONAL { ?enSingularLexicalEntry wdt:P5831 ?enUsageExample. }
-            MINUS { ?enLexicalForm wikibase:grammaticalFeature wd:Q1861696. }
         }
+        BIND(COALESCE(?enSingular, "") AS ?enSingularOrEmpty)
+        BIND(COALESCE(?enPlural, "") AS ?enPluralOrEmpty)
+        BIND(COALESCE(?enUsageExample, "") AS ?enUsageExampleOrEmpty)
+        BIND(COALESCE(?deSingularNominative, "") AS ?deSingularNominativeOrEmpty)
+        BIND(COALESCE(?deSingularNominativeDefiniteArticleRepresentation, "") AS ?deSingularNominativeDefiniteArticleRepresentationOrEmpty)
+        BIND(COALESCE(?dePronunciationAudioSingularNominativeUrl, "") AS ?dePronunciationAudioSingularNominativeUrlOrEmpty)
+        BIND(COALESCE(?dePluralNominative, "di") AS ?dePluralNominativeOrEmpty)
+        BIND(COALESCE(?dePronunciationAudioPluralNominativeUrl, "") AS ?dePronunciationAudioPluralNominativeUrlOrEmpty)
     }
 }

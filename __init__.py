@@ -5,10 +5,15 @@ import typing
 
 import anki.hooks
 import anki.notes
+import anki.stdmodels
 import aqt.deckbrowser
 import aqt.editor
+import aqt.models
+import aqt.operations.notetype
+import aqt.utils
 import aqt.operations
 import aqt.operations.note
+import aqt.qt
 import aqt.utils
 import aqt.webview
 
@@ -17,8 +22,6 @@ sys.path.append('/Users/veyndan/Development/myankiplugin/.venv/lib/python3.9/sit
 import rdflib  # noqa: E402
 import rdflib.plugins.sparql  # noqa: E402
 import rdflib.plugins.sparql.sparql  # noqa: E402
-
-config = aqt.mw.addonManager.getConfig(__name__)
 
 
 def requirement_hints(editor: aqt.editor.Editor) -> None:
@@ -33,7 +36,16 @@ def requirement_hints(editor: aqt.editor.Editor) -> None:
     actual_note: anki.notes.Note = note
 
     fields_state_initial = rdflib.Graph()
-    with urllib.request.urlopen(next(query for query in config['urls'] if query['noteTypeId'] == actual_note.mid)['url']) as response:
+
+    config = aqt.mw.addonManager.getConfig(__name__)
+
+    url = next((query['url'] for query in config['urls'] if query['noteTypeId'] == actual_note.mid), None)
+    if url is None:
+        print('url not found for note type', actual_note.mid)
+        return
+    actual_url: str = url
+
+    with urllib.request.urlopen(actual_url) as response:
         prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
 
     query_result = fields_state_initial.query(prepared_query)
@@ -80,7 +92,15 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
             .add((field_subject, rdflib.RDFS.label, rdflib.Literal(label))) \
             .add((field_subject, rdflib.RDF.value, rdflib.Literal(value)))
 
-    with urllib.request.urlopen(next(query for query in config['urls'] if query['noteTypeId'] == note.mid)['url']) as response:
+    config = aqt.mw.addonManager.getConfig(__name__)
+
+    url = next((query['url'] for query in config['urls'] if query['noteTypeId'] == note.mid), None)
+    if url is None:
+        print(url, 'not found for note type', note.mid)
+        return note
+    actual_url: str = url
+
+    with urllib.request.urlopen(actual_url) as response:
         prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
 
     query_result = fields_state_initial.query(prepared_query)
@@ -105,7 +125,7 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
         label: rdflib.Literal = binding['fieldLabel']
         value: rdflib.Literal = binding['fieldValue']
         print(f"({label}, {value})")
-        link = editor.urlToLink(value.value)
+        link = editor.urlToLink(value.value) if editor.isURL(value.value) else value.value
         note[label.value] = value.value if link is None else link
 
     return note
@@ -133,3 +153,124 @@ def add_generate_button(buttons: typing.List[str], editor: aqt.editor.Editor) ->
 
 
 aqt.gui_hooks.editor_did_init_buttons.append(add_generate_button)
+
+
+def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.models.Models) -> list[tuple[str, [[], None]]]:
+    def add_from_url_button_function(col: aqt.Collection) -> None:
+        text, url, ok = get_text(aqt.utils.tr.actions_name())
+        if not ok or not text.strip():
+            return
+
+        with urllib.request.urlopen(url) as response:
+            prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
+
+        initial_graph = rdflib.Graph().query(prepared_query).graph
+
+        query_result_fields = initial_graph.query(
+            rdflib.plugins.sparql.prepareQuery(
+                textwrap.dedent(
+                    '''
+                    PREFIX anki: <https://veyndan.com/foo/>
+                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                    
+                    SELECT ?fieldLabel WHERE {
+                        [] a anki:field;
+                            rdfs:label ?fieldLabel.
+                    }
+                    '''
+                )
+            )
+        )
+
+        notetype = col.models.new(text)
+
+        for binding in query_result_fields:
+            label: rdflib.Literal = binding['fieldLabel']
+            col.models.add_field(notetype, col.models.new_field(label.value))
+
+        query_result0 = initial_graph.query(
+            rdflib.plugins.sparql.prepareQuery(
+                textwrap.dedent(
+                    '''
+                    PREFIX anki: <https://veyndan.com/foo/>
+                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                    
+                    SELECT ?templateLabel ?qfmt ?afmt WHERE {
+                        [] a anki:template;
+                            rdfs:label ?templateLabel;
+                            anki:qfmt ?qfmt;
+                            anki:afmt ?afmt.
+                    }
+                    '''
+                )
+            )
+        )
+
+        for binding in query_result0:
+            label: rdflib.Literal = binding['templateLabel']
+            qfmt: rdflib.Literal = binding['qfmt']
+            afmt: rdflib.Literal = binding['afmt']
+            col.models.add_template(notetype, col.models.new_template(label.value) | {'qfmt': qfmt.value, 'afmt': afmt.value})
+
+        def on_notetype_added(success: aqt.operations.ResultWithChanges) -> None:
+            config = aqt.mw.addonManager.getConfig(__name__)
+            config["urls"].append({"noteTypeId": success.id, "url": url})
+            aqt.mw.addonManager.writeConfig(__name__, config)
+            models.refresh_list()
+
+        aqt.operations.notetype.add_notetype_legacy(parent=models, notetype=notetype) \
+            .success(on_notetype_added) \
+            .run_in_background()
+
+    anki.stdmodels.models.append(("From URL", add_from_url_button_function))
+
+    return buttons
+
+
+# TODO Find a more appropriate hook to add the notetype
+aqt.gui_hooks.models_did_init_buttons.append(models_did_init_buttons)
+
+
+# This was heavily copied from aqt.utils.getText
+def get_text(prompt: str, title: str = "Anki") -> tuple[str, str, int]:
+    """Returns (string, succeeded)."""
+    parent = aqt.mw.app.activeWindow() or aqt.mw
+    d = GetTextDialog(parent, prompt, title=title)
+    d.setWindowModality(aqt.qt.Qt.WindowModality.WindowModal)
+    ret = d.exec()
+    return str(d.l.text()), str(d.edit_url.text()), ret
+    # return str(d.l.text()), "http://localhost:9090/de_en.rq", ret
+
+
+# This was heavily copied from aqt.utils.GetTextDialog
+class GetTextDialog(aqt.qt.QDialog):
+    def __init__(self, parent: aqt.qt.QWidget, question: str, title: str = "Anki") -> None:
+        aqt.qt.QDialog.__init__(self, parent)
+        self.setWindowTitle(title)
+        aqt.utils.disable_help_button(self)
+        self.question = question
+        self.qlabel = aqt.qt.QLabel(question)
+        self.setMinimumWidth(400)
+        v = aqt.qt.QVBoxLayout()
+
+        v.addWidget(self.qlabel)
+        edit_name = aqt.qt.QLineEdit()
+        self.l = edit_name
+        v.addWidget(self.l)
+
+        v.addWidget(aqt.qt.QLabel("URL"))
+        self.edit_url = aqt.qt.QLineEdit()
+        v.addWidget(self.edit_url)
+
+        buts = (aqt.qt.QDialogButtonBox.StandardButton.Ok | aqt.qt.QDialogButtonBox.StandardButton.Cancel)
+        b = aqt.qt.QDialogButtonBox(buts)  # type: ignore
+        v.addWidget(b)
+        self.setLayout(v)
+        aqt.qt.qconnect(b.button(aqt.qt.QDialogButtonBox.StandardButton.Ok).clicked, self.accept)
+        aqt.qt.qconnect(b.button(aqt.qt.QDialogButtonBox.StandardButton.Cancel).clicked, self.reject)
+
+    def accept(self) -> None:
+        return aqt.qt.QDialog.accept(self)
+
+    def reject(self) -> None:
+        return aqt.qt.QDialog.reject(self)
