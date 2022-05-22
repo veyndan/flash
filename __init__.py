@@ -1,7 +1,7 @@
-import urllib.request
 import sys
 import textwrap
 import typing
+import urllib.request
 
 import anki.hooks
 import anki.notes
@@ -9,11 +9,11 @@ import anki.stdmodels
 import aqt.deckbrowser
 import aqt.editor
 import aqt.models
-import aqt.operations.notetype
-import aqt.utils
 import aqt.operations
 import aqt.operations.note
+import aqt.operations.notetype
 import aqt.qt
+import aqt.utils
 import aqt.utils
 import aqt.webview
 
@@ -82,16 +82,35 @@ def requirement_hints(editor: aqt.editor.Editor) -> None:
 aqt.gui_hooks.editor_did_load_note.append(requirement_hints)
 
 
-def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.notes.Note:
-    fields_state_initial = rdflib.Graph()
-    for (label, value) in note.items():
-        import uuid
-        field_subject = rdflib.URIRef('https://veyndan.com/foo/' + uuid.uuid4().hex)  # TODO For some reason I can't use blank node
-        fields_state_initial \
-            .add((field_subject, rdflib.RDF.type, rdflib.URIRef('https://veyndan.com/foo/field'))) \
-            .add((field_subject, rdflib.RDFS.label, rdflib.Literal(label))) \
-            .add((field_subject, rdflib.RDF.value, rdflib.Literal(value)))
+class NoteFieldsAdapter:
 
+    def __init__(self, editor: aqt.editor.Editor):
+        self._editor = editor
+
+    @staticmethod
+    def to_graph(note_fields: list[tuple[str, str]]) -> rdflib.Graph:
+        graph = rdflib.Graph()
+        for (label, value) in note_fields:
+            import uuid
+            field_subject = rdflib.URIRef('https://veyndan.com/foo/' + uuid.uuid4().hex)  # TODO For some reason I can't use blank node
+            graph \
+                .add((field_subject, rdflib.RDF.type, rdflib.URIRef('https://veyndan.com/foo/field'))) \
+                .add((field_subject, rdflib.RDFS.label, rdflib.Literal(label))) \
+                .add((field_subject, rdflib.RDF.value, rdflib.Literal(value)))
+        return graph
+
+    def from_graph(self, graph: rdflib.Graph) -> list[tuple[str, str]]:
+        note_fields: list[tuple[str, str]] = []
+        for binding in graph:
+            label: rdflib.Literal = binding['fieldLabel']
+            value: rdflib.Literal = binding['fieldValue']
+            print(f"({label}, {value})")
+            link = self._editor.urlToLink(value.value) if self._editor.isURL(value.value) else value.value
+            note_fields += (label.value, value.value if link is None else link)
+        return note_fields
+
+
+def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.notes.Note:
     config = aqt.mw.addonManager.getConfig(__name__)
 
     url = next((query['url'] for query in config['urls'] if query['noteTypeId'] == note.mid), None)
@@ -103,30 +122,30 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
     with urllib.request.urlopen(actual_url) as response:
         prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
 
-    query_result = fields_state_initial.query(prepared_query)
+    note_fields_adapter = NoteFieldsAdapter(editor)
 
-    query_result2 = query_result.graph.query(
-        rdflib.plugins.sparql.prepareQuery(
-            textwrap.dedent(
-                '''
-                PREFIX anki: <https://veyndan.com/foo/>
-                
-                SELECT ?fieldLabel ?fieldValue WHERE {
-                    [] a anki:field;
-                        rdfs:label ?fieldLabel;
-                        rdf:value ?fieldValue.
-                }
-                '''
-            )
+    prepared_query0 = rdflib.plugins.sparql.prepareQuery(
+        textwrap.dedent(
+            '''
+            PREFIX anki: <https://veyndan.com/foo/>
+            
+            SELECT ?fieldLabel ?fieldValue WHERE {
+                [] a anki:field;
+                    rdfs:label ?fieldLabel;
+                    rdf:value ?fieldValue.
+            }
+            '''
         )
     )
 
-    for binding in query_result2:
-        label: rdflib.Literal = binding['fieldLabel']
-        value: rdflib.Literal = binding['fieldValue']
-        print(f"({label}, {value})")
-        link = editor.urlToLink(value.value) if editor.isURL(value.value) else value.value
-        note[label.value] = value.value if link is None else link
+    query_result_graph = note_fields_adapter.to_graph(note.items()) \
+        .query(prepared_query) \
+        .graph \
+        .query(prepared_query0) \
+        .graph
+
+    for label, value in note_fields_adapter.from_graph(query_result_graph):
+        note[label] = value
 
     return note
 
