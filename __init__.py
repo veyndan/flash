@@ -25,6 +25,10 @@ import rdflib.plugins.sparql  # noqa: E402
 import rdflib.plugins.sparql.sparql  # noqa: E402
 
 
+class NoteNotFoundError(Exception):
+    """ Note not found. """
+
+
 def requirement_hints(editor: aqt.editor.Editor) -> None:
     """
     Add hints to the GUI to get the initial state of the note into a form (fields_state_initial) that can be parsed by
@@ -135,7 +139,7 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
 def on_generate_clicked(editor: aqt.editor.Editor):
     note = editor.note
     if note is None:
-        aqt.utils.showInfo("No note found.")
+        print(NoteNotFoundError())
         return
     actual_note: anki.notes.Note = note
 
