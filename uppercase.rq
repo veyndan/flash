@@ -19,7 +19,7 @@ CONSTRUCT {
         anki:afmt "{{FrontSide}}\n\n<hr id=answer>\n\n{{Uppercase Text}}".
 }
 WHERE {
-    SELECT ?text_or_empty (UCASE(?text) AS ?uppercaseText) WHERE {
+    SELECT ?text_or_empty (UCASE(?text_or_empty) AS ?uppercaseText) WHERE {
         OPTIONAL {
             ?textField a anki:field;
                 rdfs:label "Text";

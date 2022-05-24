@@ -20,6 +20,7 @@ import PyQt6.QtWidgets
 
 sys.path.append('/Users/veyndan/Development/myankiplugin/.venv/lib/python3.9/site-packages')
 
+import pyshacl  # noqa: E402
 import rdflib  # noqa: E402
 import rdflib.plugins.sparql  # noqa: E402
 import rdflib.plugins.sparql.sparql  # noqa: E402
@@ -170,6 +171,23 @@ def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.m
             prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
 
         initial_graph = rdflib.Graph().query(prepared_query).graph
+
+        conforms, results_graph, results_text = pyshacl.validate(
+            initial_graph,
+            shacl_graph='http://localhost:9090/shapesGraph.ttl',
+        )
+
+        if not conforms:
+            aqt.utils.showCritical(
+                f'''
+                Graph doesn't conform to specification.
+                
+                Please contact the developer and copy-paste the following message to them.
+                
+                {results_text}
+                '''
+            )
+            return
 
         query_result_fields = initial_graph.query(
             rdflib.plugins.sparql.prepareQuery(
