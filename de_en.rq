@@ -14,7 +14,6 @@ PREFIX wikibase: <http://wikiba.se/ontology#>
 CONSTRUCT {
     anki:enSingularField a anki:field;
         rdfs:label "EN Singular";
-        anki:regex ".*";
         anki:required true;
         rdf:value ?enSingularOrEmpty.
 
@@ -35,7 +34,6 @@ CONSTRUCT {
 
     anki:deSingularNominativeDefiniteArticleRepresentation a anki:field;
         rdfs:label "DE Singular Nominative Definite Article";
-        anki:allowedValue "der", "die", "das";
         anki:required false;
         rdf:value ?deSingularNominativeDefiniteArticleRepresentationOrEmpty.
 
