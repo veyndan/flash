@@ -1,0 +1,56 @@
+PREFIX anki: <https://veyndan.com/foo/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+# TODO Require that there is at least 1 (or 2?) field
+anki:FieldShape
+	a sh:NodeShape;
+	sh:targetClass anki:field;
+	sh:property [
+		sh:path rdfs:label;
+		sh:uniqueLang false; # TODO This'd be cool to set to true as we could have localised labels (e.g., "EN Example Sentence" if the users language is in English, and "Beispielsatz" if the users language is in German)
+		sh:minCount 1;
+		sh:maxCount 1;
+		sh:datatype xsd:string; # TODO Shouldn't this be somehow defined by rdfs:label itself?
+	];
+	sh:property [
+		sh:path anki:required;
+		sh:minCount 1;
+		sh:maxCount 1;
+		sh:datatype xsd:boolean;
+	];
+	sh:property [
+		sh:path rdf:value;
+		sh:minCount 1;
+		sh:maxCount 1;
+		sh:datatype xsd:string;
+	];
+	sh:closed true;
+	sh:ignoredProperties (rdf:type).
+
+# TODO Require that there is at least 1 template
+anki:TemplateShape
+    a sh:NodeShape;
+    sh:targetClass anki:template;
+    sh:property [
+        sh:path rdfs:label;
+        sh:minCount 1;
+        sh:maxCount 1;
+        sh:datatype xsd:string;
+    ];
+    sh:property [
+        sh:path anki:qfmt;
+        sh:minCount 1;
+        sh:maxCount 1;
+        sh:datatype xsd:string;
+    ];
+    sh:property [
+        sh:path anki:afmt;
+        sh:minCount 1;
+        sh:maxCount 1;
+        sh:datatype xsd:string;
+    ];
+    sh:closed true;
+    sh:ignoredProperties (rdf:type).
