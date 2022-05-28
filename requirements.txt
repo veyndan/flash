@@ -1,5 +1,5 @@
-anki==2.1.52
-aqt==2.1.52
+anki==2.1.53
+aqt==2.1.53
 attrs==21.4.0
 beautifulsoup4==4.11.1
 certifi==2021.10.8
