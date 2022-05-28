@@ -153,12 +153,32 @@ def on_generate_clicked(editor: aqt.editor.Editor):
     query_op.with_progress().run_in_background()
 
 
-def add_generate_button(buttons: typing.List[str], editor: aqt.editor.Editor) -> None:
-    button = editor.addButton(icon=None, cmd="Generate", func=on_generate_clicked)
-    buttons.append(button)
+aqt.mw.addonManager.setWebExports(__name__, r"(web|icons)/.*\.(js|css|png)")
 
 
-aqt.gui_hooks.editor_did_init_buttons.append(add_generate_button)
+def add_generate_button(web_content: aqt.webview.WebContent, context: typing.Optional[object]) -> None:
+    if not isinstance(context, aqt.editor.Editor):
+        return
+
+    addon_package = context.mw.addonManager.addonFromModule(__name__)
+    base_path = f"/_addons/{addon_package}/web"
+
+    web_content.js.append(f"{base_path}/editor.js")
+    web_content.css.append(f"{base_path}/editor.css")
+
+
+aqt.gui_hooks.webview_will_set_content.append(add_generate_button)
+
+
+def webview_did_receive_js_message(handled: tuple[bool, typing.Any], message: str, context: typing.Any) -> tuple[bool, typing.Any]:
+    if not isinstance(context, aqt.editor.Editor) or not message == 'myankiplugin:generate':
+        return handled
+
+    on_generate_clicked(context)
+    return True, None
+
+
+aqt.gui_hooks.webview_did_receive_js_message.append(webview_did_receive_js_message)
 
 
 def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.models.Models) -> list[tuple[str, [[], None]]]:
