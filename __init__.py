@@ -1,3 +1,4 @@
+import dataclasses
 import sys
 import textwrap
 import typing
@@ -35,23 +36,23 @@ def requirement_hints(editor: aqt.editor.Editor) -> None:
     Add hints to the GUI to get the initial state of the note into a form (fields_state_initial) that can be parsed by
     myankiplugin.
     """
-    note = editor.note
-    if note is None:
+    maybe_note = editor.note
+    if maybe_note is None:
         aqt.utils.showInfo("No note found.")
         return
-    actual_note: anki.notes.Note = note
+    note: anki.notes.Note = maybe_note
 
     fields_state_initial = rdflib.Graph()
 
     config = aqt.mw.addonManager.getConfig(__name__)
 
-    url = next((query['url'] for query in config['urls'] if query['noteTypeId'] == actual_note.mid), None)
-    if url is None:
-        print('url not found for note type', actual_note.mid)
+    maybe_url: str = next((query['url'] for query in config['urls'] if query['noteTypeId'] == note.mid), None)
+    if maybe_url is None:
+        print('url not found for note type', note.mid)
         return
-    actual_url: str = url
+    url: str = maybe_url
 
-    with urllib.request.urlopen(actual_url) as response:
+    with urllib.request.urlopen(url) as response:
         prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
 
     query_result = fields_state_initial.query(prepared_query)
@@ -86,6 +87,16 @@ def requirement_hints(editor: aqt.editor.Editor) -> None:
 
 
 aqt.gui_hooks.editor_did_load_note.append(requirement_hints)
+
+
+@dataclasses.dataclass
+class MyankipluginConfigSchema:
+    @dataclasses.dataclass
+    class Url:
+        noteTypeId: int
+        url: str
+
+    urls: [Url]
 
 
 def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.notes.Note:
