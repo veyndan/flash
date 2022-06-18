@@ -1,16 +1,35 @@
 {
+  "@context": {
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#"
+  },
   "urls": [
     {
       "noteTypeId": -1,
       "url": "https://www.example.com",
       "fields": [
         {
-          "iri": "https://veyndan.com/bar/text",
-          "label": "Text"
+          "rdfs:label": [
+            {
+              "@value": "Text",
+              "@language": "en-GB"
+            },
+            {
+              "@value": "Text in German",
+              "@language": "de"
+            }
+          ]
         },
         {
-          "iri": "https://veyndan.com/bar/uppercaseText",
-          "label": "Uppercase Text"
+          "rdfs:label": [
+            {
+              "@value": "Uppercase Text",
+              "@language": "en-GB"
+            },
+            {
+              "@value": "Uppercase Text in German",
+              "@language": "de"
+            }
+          ]
         }
       ]
     }
