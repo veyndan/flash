@@ -2,7 +2,17 @@
   "urls": [
     {
       "noteTypeId": -1,
-      "url": "https://www.example.com"
+      "url": "https://www.example.com",
+      "fields": [
+        {
+          "iri": "https://veyndan.com/bar/text",
+          "label": "Text"
+        },
+        {
+          "iri": "https://veyndan.com/bar/uppercaseText",
+          "label": "Uppercase Text"
+        }
+      ]
     }
   ]
 }
