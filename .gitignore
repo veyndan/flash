@@ -3,6 +3,6 @@
 .venv
 __pycache__
 *.iml
-meta.json
 web
 node_modules
+user_files
