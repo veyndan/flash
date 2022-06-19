@@ -43,15 +43,33 @@ def requirement_hints(editor: aqt.editor.Editor) -> None:
 
     fields_state_initial = rdflib.Graph()
 
-    config = aqt.mw.addonManager.getConfig(__name__)
+    config = rdflib.Graph()
+    with open("user_files/config.ttl") as config_file:
+        config = config.parse(file=config_file)
 
-    url = next((query['url'] for query in config['urls'] if query['noteTypeId'] == actual_note.mid), None)
-    if url is None:
+    prepared_query_config_url = rdflib.plugins.sparql.prepareQuery(
+        textwrap.dedent(
+            '''
+            PREFIX anki: <https://veyndan.com/foo/>
+            
+            SELECT ?url WHERE {
+                [] a anki:Note;
+                    anki:noteTypeId ?noteTypeId;
+                    anki:url ?url.
+            }
+            '''
+        )
+    )
+    config_query_result = config.query(prepared_query_config_url, initBindings={'noteTypeId': rdflib.Literal(actual_note.mid, datatype=rdflib.namespace.XSD.string)})
+    if len(config_query_result) == 0:
         print('url not found for note type', actual_note.mid)
         return
-    actual_url: str = url
+    if len(config_query_result) > 1:
+        aqt.utils.showCritical("myankiplugin internal files are corrupt. Multiple query URLs associated with note which is invalid.")
+        return
+    url = config_query_result.bindings[0]['url']
 
-    with urllib.request.urlopen(actual_url) as response:
+    with urllib.request.urlopen(url) as response:
         prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
 
     query_result = fields_state_initial.query(prepared_query)
@@ -98,15 +116,33 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
             .add((field_subject, rdflib.RDFS.label, rdflib.Literal(label))) \
             .add((field_subject, rdflib.RDF.value, rdflib.Literal(value)))
 
-    config = aqt.mw.addonManager.getConfig(__name__)
+    config = rdflib.Graph()
+    with open("user_files/config.ttl") as config_file:
+        config = config.parse(file=config_file)
 
-    url = next((query['url'] for query in config['urls'] if query['noteTypeId'] == note.mid), None)
-    if url is None:
-        print('URL not found for note type', note.mid)
+    prepared_query_config_url = rdflib.plugins.sparql.prepareQuery(
+        textwrap.dedent(
+            '''
+            PREFIX anki: <https://veyndan.com/foo/>
+            
+            SELECT ?url WHERE {
+                [] a anki:Note;
+                    anki:noteTypeId ?noteTypeId;
+                    anki:url ?url.
+            }
+            '''
+        )
+    )
+    config_query_result = config.query(prepared_query_config_url, initBindings={'noteTypeId': rdflib.Literal(note.mid, datatype=rdflib.namespace.XSD.string)})
+    if len(config_query_result) == 0:
+        print('url not found for note type', note.mid)
         return note
-    actual_url: str = url
+    if len(config_query_result) > 1:
+        aqt.utils.showCritical("myankiplugin internal files are corrupt. Multiple query URLs associated with note which is invalid.")
+        return note
+    url = config_query_result.bindings[0]['url']
 
-    with urllib.request.urlopen(actual_url) as response:
+    with urllib.request.urlopen(url) as response:
         prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
 
     query_result = fields_state_initial.query(prepared_query)
@@ -255,9 +291,15 @@ def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.m
             col.models.add_template(notetype, col.models.new_template(label.value) | {'qfmt': qfmt.value, 'afmt': afmt.value})
 
         def on_notetype_added(success: aqt.operations.ResultWithChanges) -> None:
-            config = aqt.mw.addonManager.getConfig(__name__)
-            config["urls"].append({"noteTypeId": success.id, "url": url})
-            aqt.mw.addonManager.writeConfig(__name__, config)
+            config = rdflib.Graph()
+            with open("user_files/config.ttl") as config_file:
+                config.parse(file=config_file)
+            node = rdflib.BNode()
+            config.add((node, rdflib.namespace.RDF.type, rdflib.URIRef("https://veyndan.com/foo/Note")))
+            config.add((node, rdflib.URIRef("https://veyndan.com/foo/noteTypeId"), rdflib.Literal(success.id, datatype=rdflib.namespace.XSD.string)))
+            config.add((node, rdflib.URIRef("https://veyndan.com/foo/url"), rdflib.URIRef(url)))
+            with open("user_files/config.ttl", "w") as config_file:
+                config_file.write(config.serialize(format="turtle"))
             models.refresh_list()
 
         aqt.operations.notetype.add_notetype_legacy(parent=models, notetype=notetype) \
