@@ -112,7 +112,7 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
         import uuid
         field_subject = rdflib.URIRef('https://veyndan.com/foo/' + uuid.uuid4().hex)  # TODO For some reason I can't use blank node
         fields_state_initial \
-            .add((field_subject, rdflib.RDF.type, rdflib.URIRef('https://veyndan.com/foo/field'))) \
+            .add((field_subject, rdflib.RDF.type, rdflib.URIRef('https://veyndan.com/foo/Field'))) \
             .add((field_subject, rdflib.RDFS.label, rdflib.Literal(label))) \
             .add((field_subject, rdflib.RDF.value, rdflib.Literal(value)))
 
@@ -251,8 +251,8 @@ def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.m
                     PREFIX anki: <https://veyndan.com/foo/>
                     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                     
-                    SELECT ?fieldLabel WHERE {
-                        [] a anki:field;
+                    SELECT ?fieldId ?fieldLabel WHERE {
+                        ?fieldId a anki:field;
                             rdfs:label ?fieldLabel.
                     }
                     '''
@@ -261,9 +261,12 @@ def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.m
         )
 
         notetype = col.models.new(text)
+        fields: [(rdflib.URIRef, rdflib.Literal)] = []
 
         for binding in query_result_fields:
+            field_id: rdflib.URIRef = binding['fieldId']
             label: rdflib.Literal = binding['fieldLabel']
+            fields.append((field_id, label))
             col.models.add_field(notetype, col.models.new_field(label.value))
 
         query_result0 = initial_graph.query(
@@ -298,6 +301,12 @@ def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.m
             config.add((node, rdflib.namespace.RDF.type, rdflib.URIRef("https://veyndan.com/foo/Note")))
             config.add((node, rdflib.URIRef("https://veyndan.com/foo/noteTypeId"), rdflib.Literal(success.id, datatype=rdflib.namespace.XSD.string)))
             config.add((node, rdflib.URIRef("https://veyndan.com/foo/url"), rdflib.URIRef(url)))
+            for (field_id, field_label) in fields:
+                field_node = rdflib.BNode()
+                config.add((node, rdflib.URIRef("https://veyndan.com/foo/field"), field_node))
+                config.add((field_node, rdflib.namespace.RDF.type, rdflib.URIRef("https://veyndan.com/foo/Field")))
+                config.add((field_node, rdflib.URIRef("https://veyndan.com/foo/fieldId"), field_id))
+                config.add((field_node, rdflib.namespace.RDFS.label, field_label))
             with open("user_files/config.ttl", "w") as config_file:
                 config_file.write(config.serialize(format="turtle"))
             models.refresh_list()
