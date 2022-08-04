@@ -31,6 +31,7 @@ class NoteNotFoundError(Exception):
     """ Note not found. """
 
 
+<<<<<<< Updated upstream
 def show_things(editor: aqt.editor.Editor) -> None:
     note = editor.note
     if note is None:
@@ -84,6 +85,124 @@ def show_things(editor: aqt.editor.Editor) -> None:
     editor.set_note(actual_note)
 
 
+||||||| Stash base
+=======
+def show_things(editor: aqt.editor.Editor) -> None:
+    note = editor.note
+    if note is None:
+        aqt.utils.showInfo("No note found.")
+        return
+    actual_note: anki.notes.Note = note
+    print("ids", actual_note.mid, actual_note.guid)
+
+    print(anki.lang.current_lang)
+
+    config = rdflib.Graph()
+    with open("user_files/config.ttl") as config_file:
+        config = config.parse(file=config_file)
+
+    prepared_query_config_url = rdflib.plugins.sparql.prepareQuery(
+        textwrap.dedent(
+            '''
+            PREFIX anki: <https://veyndan.com/foo/>
+            
+            SELECT ?url WHERE {
+                [] a anki:Note;
+                    anki:noteTypeId ?noteTypeId;
+                    anki:url ?url.
+            }
+            '''
+        )
+    )
+    config_query_result = config.query(prepared_query_config_url, initBindings={'noteTypeId': rdflib.Literal(actual_note.mid, datatype=rdflib.namespace.XSD.string)})
+    if len(config_query_result) == 0:
+        print('url not found for note type', actual_note.mid)
+        return
+    if len(config_query_result) > 1:
+        aqt.utils.showCritical("myankiplugin internal files are corrupt. Multiple query URLs associated with note which is invalid.")
+        return
+    url = config_query_result.bindings[0]['url']
+
+    with urllib.request.urlopen(url) as response:
+        prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
+
+    # TODO
+    #  In reality I'd want to iterate over the real fields to get the value to pass to `fieldLabel`.
+    #  This isn't possible as Anki doesn't state what language a label is in, so I'll need to store it in config.ttl.
+    #  I could in theory just store the last language, but in theory a user could have a language order preference, where they speak English and German,
+    #  and would rather have it in English, but if English isn't available, show it in German.
+    #  Therefore, the labels could be a mix of multiple languages.
+    #  I'd also model Fanki this way, with storing the language at the label site instead of globally.
+    prepared_query_config_url = rdflib.plugins.sparql.prepareQuery(
+        textwrap.dedent(
+            '''
+            PREFIX anki: <https://veyndan.com/foo/>
+            
+            SELECT ?fieldIdentifier ?fieldLabel WHERE {
+                [] a anki:Note;
+                    anki:noteTypeId ?noteTypeId;
+                    anki:field ?fieldIdentifier.
+
+                ?fieldIdentifier a anki:field;
+                    rdfs:label ?fieldLabel.
+            }
+            '''
+        )
+    )
+    print(actual_note.mid)
+    config_query_result = config.query(
+        prepared_query_config_url,
+        initBindings={
+            'noteTypeId': rdflib.Literal(actual_note.mid, datatype=rdflib.namespace.XSD.string),
+        }
+    )
+
+    for binding in config_query_result:
+        field_identifier: rdflib.URIRef = binding['fieldIdentifier']
+        field_label: rdflib.URIRef = binding['fieldLabel']
+        print(field_identifier, field_label)
+
+    query_result = rdflib.Graph().query(prepared_query)
+
+    prepared_query_field_required = rdflib.plugins.sparql.prepareQuery(
+        textwrap.dedent(
+            '''
+            PREFIX anki: <https://veyndan.com/foo/>
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    
+            SELECT ?fieldIdentifier ?fieldLabel WHERE {
+                ?fieldIdentifier a anki:field;
+                    rdfs:label ?fieldLabel.
+                
+                FILTER(langMatches(lang(?fieldLabel), ?fieldLabelLanguage))
+            }
+            '''
+        )
+    )
+
+    query_result.graph.query(prepared_query_field_required, initBindings={'fieldLabel': rdflib.Literal('Text', lang='en-GB')})
+
+    note_modified = False
+    for field in actual_note.note_type()["flds"]:
+        print("whatever", field)
+        for binding in query_result.graph.query(prepared_query_field_required, initBindings={'fieldLabelLanguage': rdflib.Literal(anki.lang.current_lang)}):
+            identifier: rdflib.URIRef = binding['fieldIdentifier']
+            label: rdflib.Literal = binding['fieldLabel']
+            print("veyndan___", identifier.toPython(), label)
+            if identifier.toPython() == field['myankiplugin-identifier']:
+                actual_note.col.models.rename_field(actual_note.note_type(), field, label.value)
+                # TODO Change config.ttl to match new label
+                note_modified = True
+                print(field)
+
+    # if note_modified:
+    #     editor.set_note(actual_note)
+
+
+aqt.gui_hooks.editor_did_load_note.append(show_things)
+
+
+>>>>>>> Stashed changes
 def requirement_hints(editor: aqt.editor.Editor) -> None:
     """
     Add hints to the GUI to get the initial state of the note into a form (fields_state_initial) that can be parsed by
@@ -127,7 +246,13 @@ def requirement_hints(editor: aqt.editor.Editor) -> None:
         )
     )
 
+<<<<<<< Updated upstream
     for label in [binding['fieldLabel'] for binding in query_result.graph.query(prepared_query_field_required, initBindings={'?fieldLabelLanguage': rdflib.Literal(anki.lang.current_lang)})]:
+||||||| Stash base
+    for label in [binding['fieldLabel'] for binding in query_result.graph.query(prepared_query_field_required)]:
+=======
+    for label in [binding['fieldLabel'] for binding in query_result.graph.query(prepared_query_field_required, initBindings={'fieldLabelLanguage': rdflib.Literal(anki.lang.current_lang)})]:
+>>>>>>> Stashed changes
         label_value: str = label.value
 
         editor.web.page().runJavaScript(
@@ -153,7 +278,7 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
         field_subject = rdflib.URIRef('https://veyndan.com/foo/' + uuid.uuid4().hex)  # TODO For some reason I can't use blank node
         fields_state_initial \
             .add((field_subject, rdflib.RDF.type, rdflib.URIRef('https://veyndan.com/foo/field'))) \
-            .add((field_subject, rdflib.RDFS.label, rdflib.Literal(label))) \
+            .add((field_subject, rdflib.RDFS.label, rdflib.Literal(label, lang=anki.lang.current_lang))) \
             .add((field_subject, rdflib.RDF.value, rdflib.Literal(value)))
 
     config = aqt.mw.addonManager.getConfig(__name__)
@@ -184,8 +309,15 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
                 }
                 '''
             )
+<<<<<<< Updated upstream
         ),
         initBindings={'?fieldLabelLanguage': rdflib.Literal(anki.lang.current_lang)},
+||||||| Stash base
+        )
+=======
+        ),
+        initBindings={'fieldLabelLanguage': rdflib.Literal(anki.lang.current_lang)},
+>>>>>>> Stashed changes
     )
 
     for binding in query_result2:
@@ -285,8 +417,15 @@ def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.m
                     }
                     '''
                 )
+<<<<<<< Updated upstream
             ),
             initBindings={'?fieldLabelLanguage': rdflib.Literal(anki.lang.current_lang)},
+||||||| Stash base
+            )
+=======
+            ),
+            initBindings={'fieldLabelLanguage': rdflib.Literal(anki.lang.current_lang)},
+>>>>>>> Stashed changes
         )
 
         notetype = col.models.new(text)
@@ -321,9 +460,38 @@ def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.m
             col.models.add_template(notetype, col.models.new_template(label.value) | {'qfmt': qfmt.value, 'afmt': afmt.value})
 
         def on_notetype_added(success: aqt.operations.ResultWithChanges) -> None:
+<<<<<<< Updated upstream
             config = aqt.mw.addonManager.getConfig(__name__)
             config["urls"].append({"noteTypeId": success.id, "url": url})
             aqt.mw.addonManager.writeConfig(__name__, config)
+||||||| Stash base
+            config = rdflib.Graph()
+            with open("user_files/config.ttl") as config_file:
+                config.parse(file=config_file)
+            node = rdflib.BNode()
+            config.add((node, rdflib.namespace.RDF.type, rdflib.URIRef("https://veyndan.com/foo/Note")))
+            config.add((node, rdflib.URIRef("https://veyndan.com/foo/noteTypeId"), rdflib.Literal(success.id, datatype=rdflib.namespace.XSD.string)))
+            config.add((node, rdflib.URIRef("https://veyndan.com/foo/url"), rdflib.URIRef(url)))
+            with open("user_files/config.ttl", "w") as config_file:
+                config_file.write(config.serialize(format="turtle"))
+=======
+            config = rdflib.Graph()
+            with open("user_files/config.ttl") as config_file:
+                config.parse(file=config_file)
+            node = rdflib.BNode()
+            config.add((node, rdflib.namespace.RDF.type, rdflib.URIRef("https://veyndan.com/foo/Note")))
+            config.add((node, rdflib.URIRef("https://veyndan.com/foo/noteTypeId"), rdflib.Literal(success.id, datatype=rdflib.namespace.XSD.string)))
+            config.add((node, rdflib.URIRef("https://veyndan.com/foo/url"), rdflib.URIRef(url)))
+            for binding in query_result_fields:
+                identifier: rdflib.URIRef = binding['fieldIdentifier']
+                label: rdflib.Literal = binding['fieldLabel']
+                config.add((node, rdflib.URIRef("https://veyndan.com/foo/field"), identifier))
+                config.add((identifier, rdflib.namespace.RDF.type, rdflib.URIRef("https://veyndan.com/foo/field")))
+                config.add((identifier, rdflib.namespace.RDFS.label, label))
+
+            with open("user_files/config.ttl", "w") as config_file:
+                config_file.write(config.serialize(format="turtle"))
+>>>>>>> Stashed changes
             models.refresh_list()
 
         aqt.operations.notetype.add_notetype_legacy(parent=models, notetype=notetype) \
@@ -359,9 +527,11 @@ class GetTextDialog(aqt.qt.QDialog):
         self._layout = aqt.qt.QVBoxLayout()
 
         self._edit_name = aqt.qt.QLineEdit()
+        self._edit_name.setText("Uppercase")
         self._add_input_field(label=aqt.utils.tr.actions_name(), line_edit=self._edit_name)
 
         self._edit_url = aqt.qt.QLineEdit()
+        self._edit_url.setText("http://localhost:9090/uppercase.rq")
         self._add_input_field(label="URL:", line_edit=self._edit_url)
 
         dialog_button_box = aqt.qt.QDialogButtonBox(aqt.qt.QDialogButtonBox.StandardButton.Ok | aqt.qt.QDialogButtonBox.StandardButton.Cancel)

@@ -35,21 +35,21 @@ anki:TemplateShape
     sh:targetClass anki:template;
     sh:property [
         sh:path rdfs:label;
+        sh:uniqueLang true;
         sh:minCount 1;
-        sh:maxCount 1;
-        sh:datatype xsd:string;
+        sh:datatype rdf:langString;
     ];
     sh:property [
         sh:path anki:qfmt;
+        sh:uniqueLang true;
         sh:minCount 1;
-        sh:maxCount 1;
-        sh:datatype xsd:string;
+        sh:datatype rdf:langString;
     ];
     sh:property [
         sh:path anki:afmt;
+        sh:uniqueLang true;
         sh:minCount 1;
-        sh:maxCount 1;
-        sh:datatype xsd:string;
+        sh:datatype rdf:langString;
     ];
     sh:closed true;
     sh:ignoredProperties (rdf:type).

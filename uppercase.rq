@@ -4,27 +4,57 @@ PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
 CONSTRUCT {
+<<<<<<< Updated upstream
     :text a anki:field;
         rdfs:label "Text"@en-GB, "Text in German"@de;
+||||||| Stash base
+    anki:text a anki:field;
+        rdfs:label "Text";
+=======
+    anki:text a anki:field;
+        rdfs:label "Text"@en-GB, "Text in German"@de;
+>>>>>>> Stashed changes
         anki:required true;
         rdf:value ?text_or_empty.
 
+<<<<<<< Updated upstream
     :uppercaseText a anki:field;
         rdfs:label "Uppercase Text"@en-GB, "Uppercase Text in German"@de;
+||||||| Stash base
+    anki:uppercaseText a anki:field;
+        rdfs:label "Uppercase Text";
+=======
+    anki:uppercaseText a anki:field;
+        rdfs:label "Uppercase Text"@en-GB, "Uppercase Text in German"@de;
+>>>>>>> Stashed changes
         anki:required false;
         rdf:value ?uppercaseText.
 
+<<<<<<< Updated upstream
     :simpleTemplate a anki:template;
         rdfs:label "Simple";
         anki:qfmt "{{Text}}";
         anki:afmt "{{FrontSide}}\n\n<hr id=answer>\n\n{{:uppercaseText}}".
+||||||| Stash base
+    anki:simpleTemplate a anki:template;
+        rdfs:label "Simple";
+        anki:qfmt "{{Text}}";
+        anki:afmt "{{FrontSide}}\n\n<hr id=answer>\n\n{{Uppercase Text}}".
+=======
+    anki:simpleTemplate a anki:template;
+        rdfs:label "Simple"@en-GB;
+        anki:qfmt "{{Text}}"@en-GB;
+        anki:afmt "{{FrontSide}}\n\n<hr id=answer>\n\n{{Uppercase Text}}"@en-GB.
+>>>>>>> Stashed changes
 }
 WHERE {
     SELECT ?text_or_empty (UCASE(?text_or_empty) AS ?uppercaseText) WHERE {
         OPTIONAL {
             ?textField a anki:field;
-                rdfs:label "Text";
                 rdf:value ?text.
+            { ?textField rdfs:label "Text"@en-GB. }
+            UNION
+            { ?textField rdfs:label "Text in German"@de. }
         }
         BIND(COALESCE(?text, "") AS ?text_or_empty)
     }
