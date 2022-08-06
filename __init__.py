@@ -1,5 +1,4 @@
 import sys
-import textwrap
 import typing
 import urllib.request
 
@@ -95,17 +94,15 @@ class Config:
 
     def query_from_note(self, note: anki.notes.Note) -> typing.Optional[rdflib.plugins.sparql.sparql.Query]:
         prepared_query_url = rdflib.plugins.sparql.prepareQuery(
-            textwrap.dedent(
-                '''
-                PREFIX anki: <https://veyndan.com/foo/>
-                
-                SELECT ?url WHERE {
-                    [] a anki:Note;
-                        anki:noteTypeId ?noteTypeId;
-                        anki:url ?url.
-                }
-                '''
-            )
+            '''
+            PREFIX anki: <https://veyndan.com/foo/>
+            
+            SELECT ?url WHERE {
+                [] a anki:Note;
+                    anki:noteTypeId ?noteTypeId;
+                    anki:url ?url.
+            }
+            '''
         )
         query_result = self._graph.query(prepared_query_url, initBindings={'noteTypeId': rdflib.Literal(note.mid, datatype=rdflib.namespace.XSD.string)})
         if len(query_result) == 0:
@@ -144,31 +141,27 @@ def requirement_hints(editor: aqt.editor.Editor) -> None:
     query_result = fields_state_initial.query(prepared_query)
 
     prepared_query_field_required = rdflib.plugins.sparql.prepareQuery(
-        textwrap.dedent(
-            '''
-            PREFIX anki: <https://veyndan.com/foo/>
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-    
-            SELECT ?fieldLabel WHERE {
-                [] a anki:field;
-                    anki:required true;
-                    rdfs:label ?fieldLabel.
-            }
-            '''
-        )
+        '''
+        PREFIX anki: <https://veyndan.com/foo/>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+        SELECT ?fieldLabel WHERE {
+            [] a anki:field;
+                anki:required true;
+                rdfs:label ?fieldLabel.
+        }
+        '''
     )
 
     for label in [binding['fieldLabel'] for binding in query_result.graph.query(prepared_query_field_required)]:
         label_value: str = label.value
 
         editor.web.page().runJavaScript(
-            textwrap.dedent(
-                f"""
-                [...document.querySelectorAll('.label-name')]
-                    .filter(field_name => field_name.innerHTML === '{label_value}')
-                    .forEach(field_name => field_name.insertAdjacentText('afterend', ' [Required]'));
-                """
-            )
+            f"""
+            [...document.querySelectorAll('.label-name')]
+                .filter(field_name => field_name.innerHTML === '{label_value}')
+                .forEach(field_name => field_name.insertAdjacentText('afterend', ' [Required]'));
+            """
         )
 
 
@@ -191,17 +184,15 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
 
     query_result2 = query_result.graph.query(
         rdflib.plugins.sparql.prepareQuery(
-            textwrap.dedent(
-                '''
-                PREFIX anki: <https://veyndan.com/foo/>
-                
-                SELECT ?fieldLabel ?fieldValue WHERE {
-                    [] a anki:field;
-                        rdfs:label ?fieldLabel;
-                        rdf:value ?fieldValue.
-                }
-                '''
-            )
+            '''
+            PREFIX anki: <https://veyndan.com/foo/>
+            
+            SELECT ?fieldLabel ?fieldValue WHERE {
+                [] a anki:field;
+                    rdfs:label ?fieldLabel;
+                    rdf:value ?fieldValue.
+            }
+            '''
         )
     )
 
@@ -288,17 +279,15 @@ def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.m
 
         query_result_fields = initial_graph.query(
             rdflib.plugins.sparql.prepareQuery(
-                textwrap.dedent(
-                    '''
-                    PREFIX anki: <https://veyndan.com/foo/>
-                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-                    
-                    SELECT ?fieldLabel WHERE {
-                        [] a anki:field;
-                            rdfs:label ?fieldLabel.
-                    }
-                    '''
-                )
+                '''
+                PREFIX anki: <https://veyndan.com/foo/>
+                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                
+                SELECT ?fieldLabel WHERE {
+                    [] a anki:field;
+                        rdfs:label ?fieldLabel.
+                }
+                '''
             )
         )
 
@@ -310,19 +299,17 @@ def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.m
 
         query_result0 = initial_graph.query(
             rdflib.plugins.sparql.prepareQuery(
-                textwrap.dedent(
-                    '''
-                    PREFIX anki: <https://veyndan.com/foo/>
-                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-                    
-                    SELECT ?templateLabel ?qfmt ?afmt WHERE {
-                        [] a anki:template;
-                            rdfs:label ?templateLabel;
-                            anki:qfmt ?qfmt;
-                            anki:afmt ?afmt.
-                    }
-                    '''
-                )
+                '''
+                PREFIX anki: <https://veyndan.com/foo/>
+                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                
+                SELECT ?templateLabel ?qfmt ?afmt WHERE {
+                    [] a anki:template;
+                        rdfs:label ?templateLabel;
+                        anki:qfmt ?qfmt;
+                        anki:afmt ?afmt.
+                }
+                '''
             )
         )
 
