@@ -26,6 +26,18 @@ import rdflib.plugins.sparql  # noqa: E402
 import rdflib.plugins.sparql.sparql  # noqa: E402
 
 
+def fields_as_graph(note: anki.notes.Note) -> rdflib.Graph:
+    graph = rdflib.Graph()
+    for (label, value) in note.items():
+        import uuid
+        field_subject = rdflib.URIRef('https://veyndan.com/foo/' + uuid.uuid4().hex)  # TODO For some reason I can't use blank node
+        graph \
+            .add((field_subject, rdflib.RDF.type, rdflib.URIRef('https://veyndan.com/foo/field'))) \
+            .add((field_subject, rdflib.RDFS.label, rdflib.Literal(label))) \
+            .add((field_subject, rdflib.RDF.value, rdflib.Literal(value)))
+    return graph
+
+
 class NoteNotFoundError(Exception):
     """ Note not found. """
 
@@ -107,14 +119,7 @@ aqt.gui_hooks.editor_did_load_note.append(requirement_hints)
 
 
 def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.notes.Note:
-    fields_state_initial = rdflib.Graph()
-    for (label, value) in note.items():
-        import uuid
-        field_subject = rdflib.URIRef('https://veyndan.com/foo/' + uuid.uuid4().hex)  # TODO For some reason I can't use blank node
-        fields_state_initial \
-            .add((field_subject, rdflib.RDF.type, rdflib.URIRef('https://veyndan.com/foo/field'))) \
-            .add((field_subject, rdflib.RDFS.label, rdflib.Literal(label))) \
-            .add((field_subject, rdflib.RDF.value, rdflib.Literal(value)))
+    fields_state_initial = fields_as_graph(note)
 
     config = rdflib.Graph()
     with open("user_files/config.ttl") as config_file:
