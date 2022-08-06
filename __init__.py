@@ -76,10 +76,20 @@ class Config:
             self._graph = self._graph.parse(file=config_file)
 
     def add_note(self, note_type_id: int, url: str):
-        node = rdflib.BNode()
-        self._graph.add((node, rdflib.namespace.RDF.type, rdflib.URIRef("https://veyndan.com/foo/Note")))
-        self._graph.add((node, rdflib.URIRef("https://veyndan.com/foo/noteTypeId"), rdflib.Literal(note_type_id, datatype=rdflib.namespace.XSD.string)))
-        self._graph.add((node, rdflib.URIRef("https://veyndan.com/foo/url"), rdflib.URIRef(url)))
+        self._graph.update(
+            f'''
+            PREFIX anki: <https://veyndan.com/foo/> 
+            
+            INSERT {{
+                [] a anki:Note;
+                    anki:noteTypeId ?noteTypeId;
+                    anki:url ?url.
+            }}
+            WHERE {{
+                {init_bindings([{'noteTypeId': rdflib.Literal(note_type_id, datatype=rdflib.namespace.XSD.string), 'url': rdflib.URIRef(url)}])}
+            }}
+            ''',
+        )
         with open("user_files/config.ttl", "w") as config_file:
             config_file.write(self._graph.serialize(format="turtle"))
 
