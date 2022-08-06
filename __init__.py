@@ -25,16 +25,39 @@ import rdflib  # noqa: E402
 import rdflib.plugins.sparql  # noqa: E402
 import rdflib.plugins.sparql.sparql  # noqa: E402
 
+T = typing.TypeVar("T", rdflib.Literal, rdflib.URIRef)
+
+
+# https://github.com/RDFLib/rdflib/issues/2012
+def init_bindings(d: list[dict[str, T]]) -> str:
+    variables = ' '.join([f'?{variable}' for variable in list(d[0])])
+    values = '\n'.join([f'({" ".join([a[key].n3() for key in list(a)])})' for a in d])
+    return f'''
+        VALUES ({variables}) {{
+            {values}
+        }}
+    '''
+
 
 def fields_as_graph(note: anki.notes.Note) -> rdflib.Graph:
+    import uuid
+    # TODO For some reason I can't use blank node
     graph = rdflib.Graph()
-    for (label, value) in note.items():
-        import uuid
-        field_subject = rdflib.URIRef('https://veyndan.com/foo/' + uuid.uuid4().hex)  # TODO For some reason I can't use blank node
-        graph \
-            .add((field_subject, rdflib.RDF.type, rdflib.URIRef('https://veyndan.com/foo/field'))) \
-            .add((field_subject, rdflib.RDFS.label, rdflib.Literal(label))) \
-            .add((field_subject, rdflib.RDF.value, rdflib.Literal(value)))
+    graph.update(
+        f'''
+        PREFIX anki: <https://veyndan.com/foo/> 
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        
+        INSERT {{
+            ?subject a anki:field;
+                rdfs:label ?label;
+                rdf:value ?value.
+        }}
+        WHERE {{
+            {init_bindings([{"subject": rdflib.URIRef('https://veyndan.com/foo/' + uuid.uuid4().hex), "label": rdflib.Literal(label), "value": rdflib.Literal(value)} for (label, value) in note.items()])}
+        }}
+        ''',
+    )
     return graph
 
 
