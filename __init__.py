@@ -24,39 +24,24 @@ import rdflib  # noqa: E402
 import rdflib.plugins.sparql  # noqa: E402
 import rdflib.plugins.sparql.sparql  # noqa: E402
 
-T = typing.TypeVar("T", rdflib.Literal, rdflib.URIRef)
-
-
-# https://github.com/RDFLib/rdflib/issues/2012
-def init_bindings(d: list[dict[str, T]]) -> str:
-    variables = ' '.join([f'?{variable}' for variable in list(d[0])])
-    values = '\n'.join([f'({" ".join([a[key].n3() for key in list(a)])})' for a in d])
-    return f'''
-        VALUES ({variables}) {{
-            {values}
-        }}
-    '''
-
 
 def fields_as_graph(note: anki.notes.Note) -> rdflib.Graph:
     import uuid
     # TODO For some reason I can't use blank node
     graph = rdflib.Graph()
-    graph.update(
-        f'''
-        PREFIX anki: <https://veyndan.com/foo/> 
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        
-        INSERT {{
-            ?subject a anki:field;
-                rdfs:label ?label;
-                rdf:value ?value.
-        }}
-        WHERE {{
-            {init_bindings([{"subject": rdflib.URIRef('https://veyndan.com/foo/' + uuid.uuid4().hex), "label": rdflib.Literal(label), "value": rdflib.Literal(value)} for (label, value) in note.items()])}
-        }}
-        ''',
-    )
+    for label, value in note.items():
+        graph.update(
+            f'''
+            PREFIX anki: <https://veyndan.com/foo/> 
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            
+            INSERT DATA {{
+                {(rdflib.URIRef('https://veyndan.com/foo/' + uuid.uuid4().hex)).n3()} a anki:field;
+                    rdfs:label {rdflib.Literal(label).n3()};
+                    rdf:value {rdflib.Literal(value).n3()}.
+            }}
+            ''',
+        )
     return graph
 
 
@@ -79,13 +64,10 @@ class Config:
             f'''
             PREFIX anki: <https://veyndan.com/foo/> 
             
-            INSERT {{
+            INSERT DATA {{
                 [] a anki:Note;
-                    anki:noteTypeId ?noteTypeId;
-                    anki:url ?url.
-            }}
-            WHERE {{
-                {init_bindings([{'noteTypeId': rdflib.Literal(note_type_id, datatype=rdflib.namespace.XSD.string), 'url': rdflib.URIRef(url)}])}
+                    anki:noteTypeId {rdflib.Literal(note_type_id, datatype=rdflib.namespace.XSD.string).n3()};
+                    anki:url {rdflib.URIRef(url).n3()}.
             }}
             ''',
         )
@@ -94,16 +76,15 @@ class Config:
 
     def query_from_note(self, note: anki.notes.Note) -> typing.Optional[rdflib.plugins.sparql.sparql.Query]:
         query_result = self._graph.query(
-            '''
+            f'''
             PREFIX anki: <https://veyndan.com/foo/>
             
-            SELECT ?url WHERE {
+            SELECT ?url WHERE {{
                 [] a anki:Note;
-                    anki:noteTypeId ?noteTypeId;
+                    anki:noteTypeId {rdflib.Literal(note.mid, datatype=rdflib.namespace.XSD.string).n3()};
                     anki:url ?url.
-            }
+            }}
             ''',
-            initBindings={'noteTypeId': rdflib.Literal(note.mid, datatype=rdflib.namespace.XSD.string)},
         )
         if len(query_result) == 0:
             print('url not found for note type', note.mid)
