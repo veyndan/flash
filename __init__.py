@@ -25,10 +25,20 @@ import rdflib.plugins.sparql  # noqa: E402
 import rdflib.plugins.sparql.sparql  # noqa: E402
 
 
-def fields_as_graph(note: anki.notes.Note) -> rdflib.Graph:
+def fields_as_graph(note: anki.notes.Note, on_generate_clicked: bool) -> rdflib.Graph:
     import uuid
     # TODO For some reason I can't use blank node
     graph = rdflib.Graph()
+    graph.update(
+        f'''
+        PREFIX anki: <https://veyndan.com/foo/> 
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        
+        INSERT DATA {{
+            anki:onGenerateClicked rdf:value {rdflib.Literal(on_generate_clicked).n3()}.
+        }}
+        '''
+    )
     for label, value in note.items():
         graph.update(
             f'''
@@ -97,27 +107,21 @@ class Config:
         return prepared_query
 
 
-def requirement_hints(editor: aqt.editor.Editor) -> None:
+def map_note(editor: aqt.editor.Editor, note: anki.notes.Note, on_generate_clicked: bool) -> anki.notes.Note:
     """
     Add hints to the GUI to get the initial state of the note into a form (fields_state_initial) that can be parsed by
     myankiplugin.
     """
-    note = editor.note
-    if note is None:
-        aqt.utils.showInfo("No note found.")
-        return
-    actual_note: anki.notes.Note = note
-
-    fields_state_initial = rdflib.Graph()
+    fields_state_initial = fields_as_graph(note, on_generate_clicked)
 
     config = Config()
 
     try:
-        prepared_query = config.query_from_note(actual_note)
+        prepared_query = config.query_from_note(note)
         if prepared_query is None:
-            return
+            return note
     except InvalidConfig:
-        return
+        return note
 
     query_result = fields_state_initial.query(prepared_query)
 
@@ -145,24 +149,6 @@ def requirement_hints(editor: aqt.editor.Editor) -> None:
             """
         )
 
-
-aqt.gui_hooks.editor_did_load_note.append(requirement_hints)
-
-
-def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.notes.Note:
-    fields_state_initial = fields_as_graph(note)
-
-    config = Config()
-
-    try:
-        prepared_query = config.query_from_note(note)
-        if prepared_query is None:
-            return note
-    except InvalidConfig:
-        return note
-
-    query_result = fields_state_initial.query(prepared_query)
-
     query_result2 = query_result.graph.query(
         '''
         PREFIX anki: <https://veyndan.com/foo/>
@@ -184,16 +170,10 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
     return note
 
 
-def on_generate_clicked(editor: aqt.editor.Editor):
-    note = editor.note
-    if note is None:
-        print(NoteNotFoundError())
-        return
-    actual_note: anki.notes.Note = note
-
+def on_ui_modification(editor: aqt.editor.Editor, note: anki.notes.Note, on_generate_clicked: bool):
     query_op = aqt.operations.QueryOp(
         parent=editor.mw,
-        op=lambda col: generate_note(editor, actual_note),
+        op=lambda col: map_note(editor, note, on_generate_clicked),
         success=editor.set_note,
     )
 
@@ -218,11 +198,30 @@ aqt.gui_hooks.webview_will_set_content.append(add_generate_button)
 
 
 def webview_did_receive_js_message(handled: tuple[bool, typing.Any], message: str, context: typing.Any) -> tuple[bool, typing.Any]:
-    if not isinstance(context, aqt.editor.Editor) or not message == 'myankiplugin:generate':
-        return handled
+    if isinstance(context, aqt.editor.Editor) and message == 'myankiplugin:generate':
+        note = context.note
+        if note is None:
+            print(NoteNotFoundError())
+            aqt.utils.showInfo("No note found.")
+        else:
+            on_ui_modification(context, note, on_generate_clicked=True)
+        return True, None
+    if isinstance(context, aqt.editor.Editor) and message.startswith('key:'):
+        # TODO There's an artificial delay between key press and receiving the message.
+        # TODO The editor.note is updated after this conditional is executed, so we always have the prior note state.
+        #  Currently just manually constructing the note with the new fields and passing it.
+        note = context.note
+        if note is None:
+            print(NoteNotFoundError())
+            aqt.utils.showInfo("No note found.")
+        else:
+            field_index = int(message.split(':')[1])
+            field_text = message.split(':')[3]
+            note[note.keys()[field_index]] = field_text
+            on_ui_modification(context, note, on_generate_clicked=False)
+        return True, None
 
-    on_generate_clicked(context)
-    return True, None
+    return handled
 
 
 aqt.gui_hooks.webview_did_receive_js_message.append(webview_did_receive_js_message)
