@@ -3,6 +3,7 @@ import typing
 import urllib.request
 
 import anki.hooks
+import anki.models
 import anki.notes
 import anki.stdmodels
 import aqt.deckbrowser
@@ -228,7 +229,7 @@ aqt.gui_hooks.webview_did_receive_js_message.append(webview_did_receive_js_messa
 
 
 def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.models.Models) -> list[tuple[str, [[], None]]]:
-    def add_from_url_button_function(col: aqt.Collection) -> None:
+    def add_from_url_button_function(col: aqt.Collection) -> anki.models.NotetypeDict:
         text, url, ok = get_text()
         if not ok:
             return
@@ -291,14 +292,12 @@ def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.m
             afmt: rdflib.Literal = binding['afmt']
             col.models.add_template(notetype, col.models.new_template(label.value) | {'qfmt': qfmt.value, 'afmt': afmt.value})
 
-        def on_notetype_added(success: aqt.operations.ResultWithChanges) -> None:
-            config = Config()
-            config.add_note(note_type_id=success.id, url=url)
-            models.refresh_list()
+        success = col.models.add_dict(notetype)
+        config = Config()
+        config.add_note(note_type_id=success.id, url=url)
+        models.refresh_list()
 
-        aqt.operations.notetype.add_notetype_legacy(parent=models, notetype=notetype) \
-            .success(on_notetype_added) \
-            .run_in_background()
+        return col.models.get(success.id)
 
     anki.stdmodels.models.append(("From URL", add_from_url_button_function))
 
