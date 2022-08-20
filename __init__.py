@@ -28,7 +28,7 @@ import rdflib.plugins.sparql.sparql  # noqa: E402
 
 def fields_as_graph(note: anki.notes.Note, on_generate_clicked: bool) -> rdflib.Graph:
     import uuid
-    # TODO For some reason I can't use blank node
+    # Replace with BNode once https://github.com/RDFLib/rdflib/pull/2084 is released.
     graph = rdflib.Graph()
     graph.update(
         f'''
