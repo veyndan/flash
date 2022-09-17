@@ -1,3 +1,4 @@
+import pathlib
 import sys
 import typing
 import urllib.request
@@ -66,8 +67,12 @@ class InvalidConfig(Exception):
 
 class Config:
     def __init__(self):
+        user_files_path = pathlib.Path.cwd() / "user_files"
+        user_files_path.mkdir(exist_ok=True)
+        self._path = user_files_path / "config.ttl"
+        self._path.touch(exist_ok=True)
         self._graph = rdflib.Graph()
-        with open("user_files/config.ttl") as config_file:
+        with open(self._path) as config_file:
             self._graph = self._graph.parse(file=config_file)
 
     def add_note(self, note_type_id: int, url: str):
@@ -82,7 +87,7 @@ class Config:
             }}
             ''',
         )
-        with open("user_files/config.ttl", "w") as config_file:
+        with open(self._path, "w") as config_file:
             config_file.write(self._graph.serialize(format="turtle"))
 
     def query_from_note(self, note: anki.notes.Note) -> typing.Optional[rdflib.plugins.sparql.sparql.Query]:
