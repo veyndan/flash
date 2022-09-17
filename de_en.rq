@@ -67,6 +67,7 @@ CONSTRUCT {
         anki:qfmt "{{EN Plural}}\n<br/>\n<span class=\"form\">Plural</span>\n<br/>\n<span class=\"en-usage-example\">{{EN Usage Example}}</span>\n\n{{type:DE Plural Nominative Definite Article}}\n{{type:DE Plural Nominative}}";
         anki:afmt "{{FrontSide}}\n\n<hr id=answer>\n\n{{DE Plural Nominative Definite Article}} {{DE Plural Nominative}}\n\n{{DE Plural Nominative Pronunciation}}\n".
 }
+FROM <file:myankiplugin/fields.ttl>
 WHERE {
     SELECT DISTINCT ?enSingular ?enPlural ?enUsageExample ?deSingularNominative ?deSingularNominativeDefiniteArticleRepresentation (MIN(?dePronunciationAudioSingularNominativeUrl) AS ?dePronunciationAudioSingularNominativeUrl1) (MAX(?dePluralNominative) AS ?dePluralNominative1) ?dePluralNominativeDefiniteArticleRepresentation (MIN(?dePronunciationAudioPluralNominativeUrl) AS ?dePronunciationAudioPluralNominativeUrl1) WHERE {
         {

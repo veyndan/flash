@@ -113,7 +113,8 @@ def map_note(editor: aqt.editor.Editor, note: anki.notes.Note, on_generate_click
     Add hints to the GUI to get the initial state of the note into a form (fields_state_initial) that can be parsed by
     myankiplugin.
     """
-    fields_state_initial = fields_as_graph(note, on_generate_clicked)
+    with open('fields.ttl', "w") as fields_file:
+        fields_file.write(fields_as_graph(note, on_generate_clicked).serialize(format="turtle"))
 
     config = Config()
 
@@ -124,7 +125,7 @@ def map_note(editor: aqt.editor.Editor, note: anki.notes.Note, on_generate_click
     except InvalidConfig:
         return note
 
-    query_result = fields_state_initial.query(prepared_query)
+    query_result = rdflib.ConjunctiveGraph().query(prepared_query)
 
     query_result_field_required = query_result.graph.query(
         '''
@@ -235,7 +236,11 @@ def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.m
             return
 
         with urllib.request.urlopen(url) as response:
-            initial_graph = rdflib.Graph().query(response.read()).graph
+            # Idk if I like this or not. It's not strange for a SPARQL query to have a default graph, e.g., like query.wikidata.org has.
+            # It'd be interesting to inverse the SERVICE relationship, like the user query would use myankiplugin as a SERVICE instead of the other way round.
+            with open('fields.ttl', 'w'):
+                pass
+            initial_graph = rdflib.ConjunctiveGraph().query(response.read()).graph
 
         conforms, results_graph, results_text = pyshacl.validate(
             initial_graph,
@@ -361,3 +366,10 @@ class GetTextDialog(aqt.qt.QDialog):
 
     def reject(self) -> None:
         return aqt.qt.QDialog.reject(self)
+
+
+if __name__ == '__main__':
+    col = anki.collection.Collection("collection-2022-08-30@20-00-10.colpkg")
+    print(col.sched.deck_due_tree())
+    col.close()
+

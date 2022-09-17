@@ -18,6 +18,7 @@ CONSTRUCT {
         anki:qfmt "{{Text}}";
         anki:afmt "{{FrontSide}}\n\n<hr id=answer>\n\n{{Uppercase Text}}".
 }
+FROM <file:myankiplugin/fields.ttl>
 WHERE {
     SELECT ?text (UCASE(?text) AS ?uppercaseText) WHERE {
         OPTIONAL {

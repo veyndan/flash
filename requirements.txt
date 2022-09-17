@@ -32,7 +32,7 @@ PyQt6-WebEngine-Qt6==6.3.1
 pyrsistent==0.18.1
 pyshacl==0.19.1
 PySocks==1.7.1
-rdflib==6.2.0
+rdflib @ git+https://github.com/rdflib/rdflib@a563a202e797cb4b2816fe59d34bdaf383d77ea2
 requests==2.28.1
 Send2Trash==1.8.0
 six==1.16.0

@@ -1,0 +1,14 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://veyndan.com/foo/86cc220186b8498cbc2db828d90e3f57> a <https://veyndan.com/foo/field> ;
+    rdfs:label "Uppercase Text" ;
+    rdf:value "" .
+
+<https://veyndan.com/foo/f58bddfeeebe497db56ef64678e1d4e7> a <https://veyndan.com/foo/field> ;
+    rdfs:label "Text" ;
+    rdf:value "" .
+
+<https://veyndan.com/foo/onGenerateClicked> rdf:value false .
+
