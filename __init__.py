@@ -1,5 +1,4 @@
 import pathlib
-import sys
 import typing
 import urllib.request
 
@@ -18,13 +17,10 @@ import aqt.utils
 import aqt.utils
 import aqt.webview
 import PyQt6.QtWidgets
-
-sys.path.append('/Users/veyndan/Development/flash/.venv/lib/python3.9/site-packages')
-
-import pyshacl  # noqa: E402
-import rdflib  # noqa: E402
-import rdflib.plugins.sparql  # noqa: E402
-import rdflib.plugins.sparql.sparql  # noqa: E402
+import pyshacl
+import rdflib
+import rdflib.plugins.sparql
+import rdflib.plugins.sparql.sparql
 
 
 def fields_as_graph(note: anki.notes.Note, on_generate_clicked: bool) -> rdflib.Graph:
