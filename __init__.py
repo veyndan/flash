@@ -19,7 +19,7 @@ import aqt.utils
 import aqt.webview
 import PyQt6.QtWidgets
 
-sys.path.append('/Users/veyndan/Development/myankiplugin/.venv/lib/python3.9/site-packages')
+sys.path.append('/Users/veyndan/Development/flash/.venv/lib/python3.9/site-packages')
 
 import pyshacl  # noqa: E402
 import rdflib  # noqa: E402
@@ -106,7 +106,7 @@ class Config:
             print('url not found for note type', note.mid)
             return None
         if len(query_result) > 1:
-            aqt.utils.showCritical("myankiplugin internal files are corrupt. Multiple query URLs associated with note which is invalid.")
+            aqt.utils.showCritical("Flash internal files are corrupt. Multiple query URLs associated with note which is invalid.")
             raise InvalidConfig()
         with urllib.request.urlopen(query_result.bindings[0]['url']) as response:
             prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
@@ -116,7 +116,7 @@ class Config:
 def map_note(editor: aqt.editor.Editor, note: anki.notes.Note, on_generate_clicked: bool) -> anki.notes.Note:
     """
     Add hints to the GUI to get the initial state of the note into a form (fields_state_initial) that can be parsed by
-    myankiplugin.
+    Flash.
     """
     fields_state_initial = fields_as_graph(note, on_generate_clicked)
 
@@ -204,7 +204,7 @@ aqt.gui_hooks.webview_will_set_content.append(add_generate_button)
 
 
 def webview_did_receive_js_message(handled: tuple[bool, typing.Any], message: str, context: typing.Any) -> tuple[bool, typing.Any]:
-    if isinstance(context, aqt.editor.Editor) and message == 'myankiplugin:generate':
+    if isinstance(context, aqt.editor.Editor) and message == 'flash:generate':
         note = context.note
         if note is None:
             print(NoteNotFoundError())
