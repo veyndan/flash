@@ -21,6 +21,12 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
+### Symlink Flash to Addons folder
+
+```bash
+ ln -sf "$(pwd)" ~/Library/Application\ Support/Anki2/addons21/flash  
+```
+
 ### Run Anki with Flash Installed
 
 ```bash
