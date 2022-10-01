@@ -25,21 +25,22 @@ import rdflib.plugins.sparql.sparql
 
 def fields_as_graph(note: anki.notes.Note, on_generate_clicked: bool) -> rdflib.Graph:
     import uuid
+
     # Replace with BNode once https://github.com/RDFLib/rdflib/pull/2084 is released.
     graph = rdflib.Graph()
     graph.update(
-        f'''
+        f"""
         PREFIX anki: <https://veyndan.com/foo/> 
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         
         INSERT DATA {{
             anki:onGenerateClicked rdf:value {rdflib.Literal(on_generate_clicked).n3()}.
         }}
-        '''
+        """
     )
     for label, value in note.items():
         graph.update(
-            f'''
+            f"""
             PREFIX anki: <https://veyndan.com/foo/> 
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             
@@ -48,17 +49,17 @@ def fields_as_graph(note: anki.notes.Note, on_generate_clicked: bool) -> rdflib.
                     rdfs:label {rdflib.Literal(label).n3()};
                     rdf:value {rdflib.Literal(value).n3()}.
             }}
-            ''',
+            """,
         )
     return graph
 
 
 class NoteNotFoundError(Exception):
-    """ Note not found. """
+    """Note not found."""
 
 
 class InvalidConfig(Exception):
-    """ Config is invalid. """
+    """Config is invalid."""
 
 
 class Config:
@@ -73,7 +74,7 @@ class Config:
 
     def add_note(self, note_type_id: int, url: str):
         self._graph.update(
-            f'''
+            f"""
             PREFIX anki: <https://veyndan.com/foo/> 
             
             INSERT DATA {{
@@ -81,14 +82,17 @@ class Config:
                     anki:noteTypeId {rdflib.Literal(note_type_id, datatype=rdflib.namespace.XSD.string).n3()};
                     anki:url {rdflib.URIRef(url).n3()}.
             }}
-            ''',
+            """,
         )
         with open(self._path, "w") as config_file:
             config_file.write(self._graph.serialize(format="turtle"))
 
-    def query_from_note(self, note: anki.notes.Note) -> typing.Optional[rdflib.plugins.sparql.sparql.Query]:
+    def query_from_note(
+        self,
+        note: anki.notes.Note,
+    ) -> typing.Optional[rdflib.plugins.sparql.sparql.Query]:
         query_result = self._graph.query(
-            f'''
+            f"""
             PREFIX anki: <https://veyndan.com/foo/>
             
             SELECT ?url WHERE {{
@@ -96,20 +100,26 @@ class Config:
                     anki:noteTypeId {rdflib.Literal(note.mid, datatype=rdflib.namespace.XSD.string).n3()};
                     anki:url ?url.
             }}
-            ''',
+            """,
         )
         if len(query_result) == 0:
-            print('url not found for note type', note.mid)
+            print("url not found for note type", note.mid)
             return None
         if len(query_result) > 1:
-            aqt.utils.showCritical("Flash internal files are corrupt. Multiple query URLs associated with note which is invalid.")
+            aqt.utils.showCritical(
+                "Flash internal files are corrupt. Multiple query URLs associated with note which is invalid."
+            )
             raise InvalidConfig()
-        with urllib.request.urlopen(query_result.bindings[0]['url']) as response:
+        with urllib.request.urlopen(query_result.bindings[0]["url"]) as response:
             prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
         return prepared_query
 
 
-def map_note(editor: aqt.editor.Editor, note: anki.notes.Note, on_generate_clicked: bool) -> anki.notes.Note:
+def map_note(
+    editor: aqt.editor.Editor,
+    note: anki.notes.Note,
+    on_generate_clicked: bool,
+) -> anki.notes.Note:
     """
     Add hints to the GUI to get the initial state of the note into a form (fields_state_initial) that can be parsed by
     Flash.
@@ -128,7 +138,7 @@ def map_note(editor: aqt.editor.Editor, note: anki.notes.Note, on_generate_click
     query_result = fields_state_initial.query(prepared_query)
 
     query_result_field_required = query_result.graph.query(
-        '''
+        """
         PREFIX anki: <https://veyndan.com/foo/>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
@@ -137,10 +147,10 @@ def map_note(editor: aqt.editor.Editor, note: anki.notes.Note, on_generate_click
                 anki:required true;
                 rdfs:label ?fieldLabel.
         }
-        '''
+        """
     )
 
-    for label in [binding['fieldLabel'] for binding in query_result_field_required]:
+    for label in [binding["fieldLabel"] for binding in query_result_field_required]:
         label_value: str = label.value
 
         editor.web.page().runJavaScript(
@@ -152,7 +162,7 @@ def map_note(editor: aqt.editor.Editor, note: anki.notes.Note, on_generate_click
         )
 
     query_result2 = query_result.graph.query(
-        '''
+        """
         PREFIX anki: <https://veyndan.com/foo/>
         
         SELECT ?fieldLabel ?fieldValue WHERE {
@@ -160,19 +170,25 @@ def map_note(editor: aqt.editor.Editor, note: anki.notes.Note, on_generate_click
                 rdfs:label ?fieldLabel;
                 rdf:value ?fieldValue.
         }
-        '''
+        """
     )
 
     for binding in query_result2:
-        label: rdflib.Literal = binding['fieldLabel']
-        value: rdflib.Literal = binding['fieldValue']
+        label: rdflib.Literal = binding["fieldLabel"]
+        value: rdflib.Literal = binding["fieldValue"]
         print(f"({label}, {value})")
-        note[label.value] = editor.urlToLink(value.value) if editor.isURL(value.value) else value.value
+        note[label.value] = (
+            editor.urlToLink(value.value) if editor.isURL(value.value) else value.value
+        )
 
     return note
 
 
-def on_ui_modification(editor: aqt.editor.Editor, note: anki.notes.Note, on_generate_clicked: bool):
+def on_ui_modification(
+    editor: aqt.editor.Editor,
+    note: anki.notes.Note,
+    on_generate_clicked: bool,
+):
     query_op = aqt.operations.QueryOp(
         parent=editor.mw,
         op=lambda col: map_note(editor, note, on_generate_clicked),
@@ -185,7 +201,10 @@ def on_ui_modification(editor: aqt.editor.Editor, note: anki.notes.Note, on_gene
 aqt.mw.addonManager.setWebExports(__name__, r"(web|icons)/.*\.(js|css|png)")
 
 
-def add_generate_button(web_content: aqt.webview.WebContent, context: typing.Optional[object]) -> None:
+def add_generate_button(
+    web_content: aqt.webview.WebContent,
+    context: typing.Optional[object],
+) -> None:
     if not isinstance(context, aqt.editor.Editor):
         return
 
@@ -199,8 +218,12 @@ def add_generate_button(web_content: aqt.webview.WebContent, context: typing.Opt
 aqt.gui_hooks.webview_will_set_content.append(add_generate_button)
 
 
-def webview_did_receive_js_message(handled: tuple[bool, typing.Any], message: str, context: typing.Any) -> tuple[bool, typing.Any]:
-    if isinstance(context, aqt.editor.Editor) and message == 'flash:generate':
+def webview_did_receive_js_message(
+    handled: tuple[bool, typing.Any],
+    message: str,
+    context: typing.Any,
+) -> tuple[bool, typing.Any]:
+    if isinstance(context, aqt.editor.Editor) and message == "flash:generate":
         note = context.note
         if note is None:
             print(NoteNotFoundError())
@@ -208,7 +231,7 @@ def webview_did_receive_js_message(handled: tuple[bool, typing.Any], message: st
         else:
             on_ui_modification(context, note, on_generate_clicked=True)
         return True, None
-    if isinstance(context, aqt.editor.Editor) and message.startswith('key:'):
+    if isinstance(context, aqt.editor.Editor) and message.startswith("key:"):
         # TODO There's an artificial delay between key press and receiving the message.
         # TODO The editor.note is updated after this conditional is executed, so we always have the prior note state.
         #  Currently just manually constructing the note with the new fields and passing it.
@@ -217,8 +240,8 @@ def webview_did_receive_js_message(handled: tuple[bool, typing.Any], message: st
             print(NoteNotFoundError())
             aqt.utils.showInfo("No note found.")
         else:
-            field_index = int(message.split(':')[1])
-            field_text = message.split(':')[3]
+            field_index = int(message.split(":")[1])
+            field_text = message.split(":")[3]
             note[note.keys()[field_index]] = field_text
             on_ui_modification(context, note, on_generate_clicked=False)
         return True, None
@@ -229,7 +252,10 @@ def webview_did_receive_js_message(handled: tuple[bool, typing.Any], message: st
 aqt.gui_hooks.webview_did_receive_js_message.append(webview_did_receive_js_message)
 
 
-def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.models.Models) -> list[tuple[str, [[], None]]]:
+def models_did_init_buttons(
+    buttons: list[tuple[str, [[], None]]],
+    models: aqt.models.Models,
+) -> list[tuple[str, [[], None]]]:
     def add_from_url_button_function(col: aqt.Collection) -> anki.models.NotetypeDict:
         text, url, ok = get_text()
         if not ok:
@@ -240,23 +266,23 @@ def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.m
 
         conforms, results_graph, results_text = pyshacl.validate(
             initial_graph,
-            shacl_graph='http://localhost:9090/shapesGraph.ttl',
+            shacl_graph="http://localhost:9090/shapesGraph.ttl",
         )
 
         if not conforms:
             aqt.utils.showCritical(
-                f'''
+                f"""
                 Graph doesn't conform to specification.
                 
                 Please contact the developer and copy-paste the following message to them.
                 
                 {results_text}
-                '''
+                """
             )
             return
 
         query_result_fields = initial_graph.query(
-            '''
+            """
             PREFIX anki: <https://veyndan.com/foo/>
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             
@@ -264,17 +290,17 @@ def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.m
                 [] a anki:field;
                     rdfs:label ?fieldLabel.
             }
-            '''
+            """
         )
 
         notetype = col.models.new(text)
 
         for binding in query_result_fields:
-            label: rdflib.Literal = binding['fieldLabel']
+            label: rdflib.Literal = binding["fieldLabel"]
             col.models.add_field(notetype, col.models.new_field(label.value))
 
         query_result0 = initial_graph.query(
-            '''
+            """
             PREFIX anki: <https://veyndan.com/foo/>
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             
@@ -284,14 +310,18 @@ def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.m
                     anki:qfmt ?qfmt;
                     anki:afmt ?afmt.
             }
-            '''
+            """
         )
 
         for binding in query_result0:
-            label: rdflib.Literal = binding['templateLabel']
-            qfmt: rdflib.Literal = binding['qfmt']
-            afmt: rdflib.Literal = binding['afmt']
-            col.models.add_template(notetype, col.models.new_template(label.value) | {'qfmt': qfmt.value, 'afmt': afmt.value})
+            label: rdflib.Literal = binding["templateLabel"]
+            qfmt: rdflib.Literal = binding["qfmt"]
+            afmt: rdflib.Literal = binding["afmt"]
+            col.models.add_template(
+                notetype,
+                col.models.new_template(label.value)
+                | {"qfmt": qfmt.value, "afmt": afmt.value},
+            )
 
         success = col.models.add_dict(notetype)
         config = Config()
@@ -329,12 +359,18 @@ class GetTextDialog(aqt.qt.QDialog):
         self._layout = aqt.qt.QVBoxLayout()
 
         self._edit_name = aqt.qt.QLineEdit()
-        self._add_input_field(label=aqt.utils.tr.actions_name(), line_edit=self._edit_name)
+        self._add_input_field(
+            label=aqt.utils.tr.actions_name(),
+            line_edit=self._edit_name,
+        )
 
         self._edit_url = aqt.qt.QLineEdit()
         self._add_input_field(label="URL:", line_edit=self._edit_url)
 
-        dialog_button_box = aqt.qt.QDialogButtonBox(aqt.qt.QDialogButtonBox.StandardButton.Ok | aqt.qt.QDialogButtonBox.StandardButton.Cancel)
+        dialog_button_box = aqt.qt.QDialogButtonBox(
+            aqt.qt.QDialogButtonBox.StandardButton.Ok
+            | aqt.qt.QDialogButtonBox.StandardButton.Cancel
+        )
         self._layout.addWidget(dialog_button_box)
 
         self.setLayout(self._layout)
@@ -355,7 +391,7 @@ class GetTextDialog(aqt.qt.QDialog):
         return str(self._edit_url.text())
 
     def accept(self) -> None:
-        if self.name.strip() != '' and self.url.strip() != '':
+        if self.name.strip() != "" and self.url.strip() != "":
             return aqt.qt.QDialog.accept(self)
         else:
             self.reject()
