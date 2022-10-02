@@ -174,11 +174,13 @@ def map_note(
     )
 
     for binding in query_result2:
-        label: rdflib.Literal = binding["fieldLabel"]
-        value: rdflib.Literal = binding["fieldValue"]
-        print(f"({label}, {value})")
-        note[label.value] = (
-            editor.urlToLink(value.value) if editor.isURL(value.value) else value.value
+        label2: rdflib.Literal = binding["fieldLabel"]
+        value2: rdflib.Literal = binding["fieldValue"]
+        print(f"({label2}, {value2})")
+        note[label2.value] = (
+            editor.urlToLink(value2.value)
+            if editor.isURL(value2.value)
+            else value2.value
         )
 
     return note
@@ -253,9 +255,9 @@ aqt.gui_hooks.webview_did_receive_js_message.append(webview_did_receive_js_messa
 
 
 def models_did_init_buttons(
-    buttons: list[tuple[str, [[], None]]],
+    buttons: typing.List[tuple[str, typing.Callable[[], None]]],
     models: aqt.models.Models,
-) -> list[tuple[str, [[], None]]]:
+) -> typing.List[tuple[str, typing.Callable[[], None]]]:
     def add_from_url_button_function(col: aqt.Collection) -> anki.models.NotetypeDict:
         text, url, ok = get_text()
         if not ok:
@@ -314,12 +316,12 @@ def models_did_init_buttons(
         )
 
         for binding in query_result0:
-            label: rdflib.Literal = binding["templateLabel"]
+            label0: rdflib.Literal = binding["templateLabel"]
             qfmt: rdflib.Literal = binding["qfmt"]
             afmt: rdflib.Literal = binding["afmt"]
             col.models.add_template(
                 notetype,
-                col.models.new_template(label.value)
+                col.models.new_template(label0.value)
                 | {"qfmt": qfmt.value, "afmt": afmt.value},
             )
 
