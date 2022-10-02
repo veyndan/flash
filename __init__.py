@@ -90,7 +90,7 @@ class Config:
     def query_from_note(
         self,
         note: anki.notes.Note,
-    ) -> typing.Optional[rdflib.plugins.sparql.sparql.Query]:
+    ) -> rdflib.plugins.sparql.sparql.Query | None:
         query_result = self._graph.query(
             f"""
             PREFIX anki: <https://veyndan.com/foo/>
@@ -205,7 +205,7 @@ aqt.mw.addonManager.setWebExports(__name__, r"(web|icons)/.*\.(js|css|png)")
 
 def add_generate_button(
     web_content: aqt.webview.WebContent,
-    context: typing.Optional[object],
+    context: object | None,
 ) -> None:
     if not isinstance(context, aqt.editor.Editor):
         return
