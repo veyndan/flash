@@ -12,9 +12,14 @@ PREFIX wdt: <http://www.wikidata.org/prop/direct/>
 PREFIX wikibase: <http://wikiba.se/ontology#>
 
 CONSTRUCT {
+    anki:itemForThisSense a anki:field;
+        rdfs:label "Item For This Sense";
+        anki:required true;
+        rdf:value ?itemForThisSense.
+
     anki:enSingularField a anki:field;
         rdfs:label "EN Singular";
-        anki:required true;
+        anki:required false;
         rdf:value ?enSingular.
 
     anki:enPluralField a anki:field;
@@ -29,7 +34,7 @@ CONSTRUCT {
 
     anki:deSingularNominativeField a anki:field;
         rdfs:label "DE Singular Nominative";
-        anki:required true;
+        anki:required false;
         rdf:value ?deSingularNominative.
 
     anki:deSingularNominativeDefiniteArticleRepresentation a anki:field;
@@ -68,7 +73,7 @@ CONSTRUCT {
         anki:afmt "{{FrontSide}}\n\n<hr id=answer>\n\n{{DE Plural Nominative Definite Article}} {{DE Plural Nominative}}\n\n{{DE Plural Nominative Pronunciation}}\n".
 }
 WHERE {
-    SELECT DISTINCT ?enSingular ?enPlural ?enUsageExample ?deSingularNominative ?deSingularNominativeDefiniteArticleRepresentation (MIN(?dePronunciationAudioSingularNominativeUrl) AS ?dePronunciationAudioSingularNominativeUrl1) (MAX(?dePluralNominative) AS ?dePluralNominative1) ?dePluralNominativeDefiniteArticleRepresentation (MIN(?dePronunciationAudioPluralNominativeUrl) AS ?dePronunciationAudioPluralNominativeUrl1) WHERE {
+    SELECT DISTINCT ?itemForThisSense ?enSingular ?enPlural ?enUsageExample ?deSingularNominative ?deSingularNominativeDefiniteArticleRepresentation (MIN(?dePronunciationAudioSingularNominativeUrl) AS ?dePronunciationAudioSingularNominativeUrl1) (MAX(?dePluralNominative) AS ?dePluralNominative1) ?dePluralNominativeDefiniteArticleRepresentation (MIN(?dePronunciationAudioPluralNominativeUrl) AS ?dePronunciationAudioPluralNominativeUrl1) WHERE {
         {
             SELECT * WHERE {
                 anki:onGenerateClicked rdf:value ?onGenerateClicked.
@@ -76,20 +81,24 @@ WHERE {
             }
         }
         OPTIONAL {
-            ?enSingularField a anki:field;
-                rdfs:label "EN Singular";
-                rdf:value ?enSingularUnlocalized.
+            ?itemForThisSenseField a anki:field;
+                rdfs:label "Item For This Sense";
+                rdf:value ?itemForThisSenseUnlocalized.
 
-            ?deSingularNominativeField a anki:field;
-                rdfs:label "DE Singular Nominative";
-                rdf:value ?deSingularNominativeUnlocalized.
-
-            BIND(STRLANG(?enSingularUnlocalized, "en") AS ?enSingular)
-            BIND(STRLANG(?deSingularNominativeUnlocalized, "de") AS ?deSingularNominative)
+            BIND(STRLANG(?itemForThisSenseUnlocalized, "en") AS ?itemForThisSense)
             BIND("die" AS ?dePluralNominativeDefiniteArticleRepresentation)
 
             SERVICE <https://query.wikidata.org/sparql> {
                 hint:Query hint:optimizer "None" .
+
+                ?enSingularLexicalEntry ontolex:sense ?enSingularSense;
+                    dct:language wd:Q1860;
+                    wikibase:lemma ?itemForThisSense.
+                ?enSingularSense wdt:P5137 ?item.
+                ?deSingularNominativeLexicalEntry ontolex:sense ?deSingularNominativeSense;
+                    dct:language wd:Q188;
+                    wikibase:lemma ?deSingularNominativeLemma.
+                ?deSingularNominativeSense wdt:P5137 ?item.
 
                 ?deSingularNominativeLexicalEntry wikibase:lemma ?deSingularNominative.
                 ?deSingularNominativeLexicalEntry dct:language wd:Q188.
