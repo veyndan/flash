@@ -24,13 +24,15 @@ python -m pip install -r requirements.txt
 ### Symlink Flash to Addons folder
 
 ```bash
- ln -sf "$(pwd)" ~/Library/Application\ Support/Anki2/addons21/flash  
+cd flash
+ln -sf "$(pwd)" ~/Library/Application\ Support/Anki2/addons21/flash  
 ```
 
 ### Run Anki with Flash Installed
 
 ```bash
-yarn --cwd "./ts" && yarn --cwd "./ts" build && DISABLE_QT5_COMPAT=1 ./.venv/bin/anki
+cd flash
+yarn --cwd "./ts" && yarn --cwd "./ts" build && DISABLE_QT5_COMPAT=1 ./../.venv/bin/anki
 ```
 
 To check that the add-on is correctly installed, go to `Tools > Add-ons`, and you should see `Flash` listed among them.
@@ -60,10 +62,10 @@ After a short while, the note should be automatically populated!
 
 The following are queries that you can use to start generating Anki notes.
 
-| Description                                              | Input                                              | Output                                                                                                                                                              | Query URL                                                           |
-|----------------------------------------------------------|----------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
-| Translate from English nouns to German nouns             | <ul><li>English noun</li><li>German noun</li></ul> | <ul><li>English plural</li><li>English example sentence</li><li>German plural</li><li>German grammatical genders</li><li>German pronunciation audio files</li></ul> | https://raw.githubusercontent.com/veyndan/flash/master/de_en.rq     |
-| Uppercase text (practically useless, but good for demos) | Arbitrary text                                     | Your text in uppercase                                                                                                                                              | https://raw.githubusercontent.com/veyndan/flash/master/uppercase.rq |
+| Description                                              | Input                                              | Output                                                                                                                                                              | Query URL                                                                 |
+|----------------------------------------------------------|----------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| Translate from English nouns to German nouns             | <ul><li>English noun</li><li>German noun</li></ul> | <ul><li>English plural</li><li>English example sentence</li><li>German plural</li><li>German grammatical genders</li><li>German pronunciation audio files</li></ul> | https://raw.githubusercontent.com/veyndan/flash/flash/master/de_en.rq     |
+| Uppercase text (practically useless, but good for demos) | Arbitrary text                                     | Your text in uppercase                                                                                                                                              | https://raw.githubusercontent.com/veyndan/flash/flash/master/uppercase.rq |
 
 ## Custom Query Development
 
@@ -72,7 +74,7 @@ If you need notes that can't be generated via the above queries (which is likely
 Queries are written in SPARQL and must be available via a URL.
 To get started, have a look at how the queries in [Available Queries](#available-queries) are developed.
 At the moment, there is a large usage of Wikidata, but any service that provides a SPARQL interface can be used.
-The query should be valid against [this SHACL graph](https://github.com/veyndan/flash/blob/master/shapesGraph.ttl).
+The query should be valid against [this SHACL graph](https://github.com/veyndan/flash/flash/blob/master/shapesGraph.ttl).
 Note that all queries are validated against the SHACL graph when adding a new note type via `Add: From URL` (per the [Usage](#usage) section).
 
 While developing the query, it's useful to host it via `localhost`.

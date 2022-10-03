@@ -271,7 +271,7 @@ def models_did_init_buttons(
 
         conforms, results_graph, results_text = pyshacl.validate(
             initial_graph,
-            shacl_graph="http://localhost:9090/shapesGraph.ttl",
+            shacl_graph="http://localhost:9090/flash/shapesGraph.ttl",
         )
 
         if not conforms:
