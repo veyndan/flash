@@ -23,7 +23,10 @@ import rdflib.plugins.sparql
 import rdflib.plugins.sparql.sparql
 
 
-def fields_as_graph(note: anki.notes.Note, on_generate_clicked: bool) -> rdflib.Graph:
+def fields_as_graph(
+    fields: list[tuple[str, str]],
+    on_generate_clicked: bool,
+) -> rdflib.Graph:
     import uuid
 
     # Replace with BNode once https://github.com/RDFLib/rdflib/pull/2084 is released.
@@ -38,7 +41,7 @@ def fields_as_graph(note: anki.notes.Note, on_generate_clicked: bool) -> rdflib.
         }}
         """
     )
-    for label, value in note.items():
+    for label, value in fields:
         graph.update(
             f"""
             PREFIX anki: <https://veyndan.com/foo/> 
@@ -124,7 +127,7 @@ def map_note(
     Add hints to the GUI to get the initial state of the note into a form (fields_state_initial) that can be parsed by
     Flash.
     """
-    fields_state_initial = fields_as_graph(note, on_generate_clicked)
+    fields_state_initial = fields_as_graph(note.items(), on_generate_clicked)
 
     config = Config()
 
