@@ -93,7 +93,7 @@ WHERE {
                 ?deSingularNominativeLexicalEntry wikibase:lemma ?deSingularNominative.
                 ?deSingularNominativeLexicalEntry dct:language wd:Q188.
                 ?deSingularNominativeLexicalEntry wdt:P5185 ?deSingularNominativeGrammaticalGender.
-                ?deSingularNominativeLexicalEntry rdf:type ontolex:LexicalEntry.
+                ?deSingularNominativeLexicalEntry a ontolex:LexicalEntry.
                 ?deSingularNominativeLexicalEntry ontolex:lexicalForm ?deSingularNominativeLexicalForm.
 
                 {
@@ -114,7 +114,7 @@ WHERE {
                 ?enSingularLexicalEntry wikibase:lemma ?enSingular.
                 ?enSingularLexicalEntry dct:language wd:Q1860.
                 ?enSingularLexicalEntry wikibase:lexicalCategory wd:Q1084.
-                ?enSingularLexicalEntry rdf:type ontolex:LexicalEntry.
+                ?enSingularLexicalEntry a ontolex:LexicalEntry.
                 ?enSingularLexicalEntry ontolex:lexicalForm ?enLexicalForm.
 
                 ?enLexicalForm wikibase:grammaticalFeature wd:Q146786.
@@ -122,13 +122,13 @@ WHERE {
 
                 ?deSingularNominativeDefiniteArticleLexicalEntry wikibase:lexicalCategory wd:Q2865743.
                 ?deSingularNominativeDefiniteArticleLexicalEntry dct:language wd:Q188.
-                ?deSingularNominativeDefiniteArticleLexicalEntry rdf:type ontolex:LexicalEntry.
+                ?deSingularNominativeDefiniteArticleLexicalEntry a ontolex:LexicalEntry.
                 ?deSingularNominativeDefiniteArticleLexicalEntry ontolex:lexicalForm ?deSingularNominativeDefiniteArticleLexicalForm.
 
                 ?deSingularNominativeDefiniteArticleLexicalForm wikibase:grammaticalFeature ?deSingularNominativeGrammaticalGender.
                 ?deSingularNominativeDefiniteArticleLexicalForm wikibase:grammaticalFeature wd:Q131105.
                 ?deSingularNominativeDefiniteArticleLexicalForm wikibase:grammaticalFeature wd:Q110786.
-                ?deSingularNominativeDefiniteArticleLexicalForm rdf:type ontolex:Form.
+                ?deSingularNominativeDefiniteArticleLexicalForm a ontolex:Form.
                 ?deSingularNominativeDefiniteArticleLexicalForm ontolex:representation ?deSingularNominativeDefiniteArticleRepresentation.
 
                 OPTIONAL { ?enSingularLexicalEntry wdt:P5831 ?enUsageExample. }
