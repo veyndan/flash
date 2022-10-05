@@ -75,16 +75,19 @@ WHERE {
             }
         }
         OPTIONAL {
-            ?enSingularField a anki:field;
-                rdfs:label "EN Singular";
-                rdf:value ?enSingularUnlocalized.
+            {
+                SELECT (STRLANG(?enSingularUnlocalized, "en") AS ?enSingular) (STRLANG(?deSingularNominativeUnlocalized, "de") AS ?deSingularNominative) WHERE {
+                    ?enSingularField a anki:field;
+                        rdfs:label "EN Singular";
+                        rdf:value ?enSingularUnlocalized.
+                    FILTER(strlen(?enSingularUnlocalized) > 0)
 
-            ?deSingularNominativeField a anki:field;
-                rdfs:label "DE Singular Nominative";
-                rdf:value ?deSingularNominativeUnlocalized.
-
-            BIND(STRLANG(?enSingularUnlocalized, "en") AS ?enSingular)
-            BIND(STRLANG(?deSingularNominativeUnlocalized, "de") AS ?deSingularNominative)
+                    ?deSingularNominativeField a anki:field;
+                        rdfs:label "DE Singular Nominative";
+                        rdf:value ?deSingularNominativeUnlocalized.
+                    FILTER(strlen(?deSingularNominativeUnlocalized) > 0)
+                }
+            }
             BIND("die" AS ?dePluralNominativeDefiniteArticleRepresentation)
 
             SERVICE <https://query.wikidata.org/sparql> {
