@@ -4,6 +4,7 @@ import typing
 import urllib.request
 
 import anki.hooks
+import anki.lang
 import anki.notes
 import anki.stdmodels
 import aqt.deckbrowser
@@ -28,6 +29,59 @@ import rdflib.plugins.sparql.sparql  # noqa: E402
 
 class NoteNotFoundError(Exception):
     """ Note not found. """
+
+
+def show_things(editor: aqt.editor.Editor) -> None:
+    note = editor.note
+    if note is None:
+        aqt.utils.showInfo("No note found.")
+        return
+    actual_note: anki.notes.Note = note
+
+    print(anki.lang.current_lang)
+
+    fields_state_initial = rdflib.Graph()
+
+    config = aqt.mw.addonManager.getConfig(__name__)
+
+    url = next((query['url'] for query in config['urls'] if query['noteTypeId'] == actual_note.mid), None)
+    if url is None:
+        print('url not found for note type', actual_note.mid)
+        return
+    actual_url: str = url
+
+    with urllib.request.urlopen(actual_url) as response:
+        prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
+
+    query_result = fields_state_initial.query(prepared_query)
+
+    prepared_query_field_required = rdflib.plugins.sparql.prepareQuery(
+        textwrap.dedent(
+            '''
+            PREFIX anki: <https://veyndan.com/foo/>
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    
+            SELECT ?fieldIdentifier ?fieldLabel WHERE {
+                ?fieldIdentifier a anki:field;
+                    rdfs:label ?fieldLabel.
+                
+                FILTER(langMatches(lang(?fieldLabel), ?fieldLabelLanguage))
+            }
+            '''
+        )
+    )
+
+    for field in actual_note.note_type()["flds"]:
+        print("whatever", field)
+        for binding in query_result.graph.query(prepared_query_field_required, initBindings={'?fieldLabelLanguage': rdflib.Literal(anki.lang.current_lang)}):
+            identifier: rdflib.URIRef = binding['fieldIdentifier']
+            label: rdflib.Literal = binding['fieldLabel']
+            print(identifier.toPython(), field['myankiplugin-identifier'])
+            if identifier.toPython() == field['myankiplugin-identifier']:
+                actual_note.col.models.rename_field(actual_note.note_type(), field, label.value)
+                print(field)
+
+    editor.set_note(actual_note)
 
 
 def requirement_hints(editor: aqt.editor.Editor) -> None:
@@ -62,16 +116,18 @@ def requirement_hints(editor: aqt.editor.Editor) -> None:
             PREFIX anki: <https://veyndan.com/foo/>
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
-            SELECT ?fieldLabel WHERE {
-                [] a anki:field;
+            SELECT ?fieldIdentifier ?fieldLabel WHERE {
+                ?fieldIdentifier a anki:field;
                     anki:required true;
                     rdfs:label ?fieldLabel.
+                
+                FILTER(langMatches(lang(?fieldLabel), ?fieldLabelLanguage))
             }
             '''
         )
     )
 
-    for label in [binding['fieldLabel'] for binding in query_result.graph.query(prepared_query_field_required)]:
+    for label in [binding['fieldLabel'] for binding in query_result.graph.query(prepared_query_field_required, initBindings={'?fieldLabelLanguage': rdflib.Literal(anki.lang.current_lang)})]:
         label_value: str = label.value
 
         editor.web.page().runJavaScript(
@@ -83,6 +139,8 @@ def requirement_hints(editor: aqt.editor.Editor) -> None:
                 """
             )
         )
+
+    show_things(editor)
 
 
 aqt.gui_hooks.editor_did_load_note.append(requirement_hints)
@@ -121,10 +179,13 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
                     [] a anki:field;
                         rdfs:label ?fieldLabel;
                         rdf:value ?fieldValue.
+                    
+                    FILTER(langMatches(lang(?fieldLabel), ?fieldLabelLanguage))
                 }
                 '''
             )
-        )
+        ),
+        initBindings={'?fieldLabelLanguage': rdflib.Literal(anki.lang.current_lang)},
     )
 
     for binding in query_result2:
@@ -216,20 +277,24 @@ def models_did_init_buttons(buttons: list[tuple[str, [[], None]]], models: aqt.m
                     PREFIX anki: <https://veyndan.com/foo/>
                     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                     
-                    SELECT ?fieldLabel WHERE {
-                        [] a anki:field;
+                    SELECT ?fieldIdentifier ?fieldLabel WHERE {
+                        ?fieldIdentifier a anki:field;
                             rdfs:label ?fieldLabel.
+                        
+                        FILTER(langMatches(lang(?fieldLabel), ?fieldLabelLanguage))
                     }
                     '''
                 )
-            )
+            ),
+            initBindings={'?fieldLabelLanguage': rdflib.Literal(anki.lang.current_lang)},
         )
 
         notetype = col.models.new(text)
 
         for binding in query_result_fields:
+            identifier: rdflib.URIRef = binding['fieldIdentifier']
             label: rdflib.Literal = binding['fieldLabel']
-            col.models.add_field(notetype, col.models.new_field(label.value))
+            col.models.add_field(notetype, col.models.new_field(label.value) | {'myankiplugin-identifier': identifier.toPython()})
 
         query_result0 = initial_graph.query(
             rdflib.plugins.sparql.prepareQuery(

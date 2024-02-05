@@ -10,10 +10,9 @@ anki:FieldShape
 	sh:targetClass anki:field;
 	sh:property [
 		sh:path rdfs:label;
-		sh:uniqueLang false; # TODO This'd be cool to set to true as we could have localised labels (e.g., "EN Example Sentence" if the users language is in English, and "Beispielsatz" if the users language is in German)
+		sh:uniqueLang true;
 		sh:minCount 1;
-		sh:maxCount 1;
-		sh:datatype xsd:string; # TODO Shouldn't this be somehow defined by rdfs:label itself?
+		sh:datatype rdf:langString;
 	];
 	sh:property [
 		sh:path anki:required;
