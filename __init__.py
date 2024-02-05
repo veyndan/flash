@@ -41,6 +41,8 @@ def requirement_hints(editor: aqt.editor.Editor) -> None:
         return
     actual_note: anki.notes.Note = note
 
+    print("note id is", actual_note.mid)
+
     fields_state_initial = rdflib.Graph()
 
     config = aqt.mw.addonManager.getConfig(__name__)
@@ -171,11 +173,69 @@ aqt.gui_hooks.webview_will_set_content.append(add_generate_button)
 
 
 def webview_did_receive_js_message(handled: tuple[bool, typing.Any], message: str, context: typing.Any) -> tuple[bool, typing.Any]:
-    if not isinstance(context, aqt.editor.Editor) or not message == 'myankiplugin:generate':
-        return handled
+    if isinstance(context, aqt.editor.Editor) and message.startswith('key:'):
+        _, field_index, _, text = message.split(':')
+        print(handled, message, field_index, text)
 
-    on_generate_clicked(context)
-    return True, None
+        editor = context
+
+        note = editor.note
+        if note is None:
+            print(NoteNotFoundError())
+            return
+        actual_note: anki.notes.Note = note
+
+        fields_state_initial = rdflib.Graph()
+        for (label, value) in actual_note.items():
+            import uuid
+            field_subject = rdflib.URIRef('https://veyndan.com/foo/' + uuid.uuid4().hex)  # TODO For some reason I can't use blank node
+            fields_state_initial \
+                .add((field_subject, rdflib.RDF.type, rdflib.URIRef('https://veyndan.com/foo/field'))) \
+                .add((field_subject, rdflib.RDFS.label, rdflib.Literal(label))) \
+                .add((field_subject, rdflib.RDF.value, rdflib.Literal(value)))
+
+        print(fields_state_initial.serialize(format='turtle'))
+
+        config = aqt.mw.addonManager.getConfig(__name__)
+
+        url = next((query['url'] for query in config['urls'] if query['noteTypeId'] == actual_note.mid), None)
+        if url is None:
+            print('URL not found for note type', actual_note.mid)
+            return handled
+        actual_url: str = url
+
+        with urllib.request.urlopen(actual_url) as response:
+            prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
+
+        initial_graph = fields_state_initial.query(prepared_query).graph
+
+        conforms, results_graph, results_text = pyshacl.validate(
+            initial_graph,
+            shacl_graph=initial_graph,
+        )
+
+        print(initial_graph.serialize(format='turtle'))
+
+        if not conforms:
+            print("DOESN'T CONFORM!!")
+            aqt.utils.showCritical(
+                f'''
+                Graph doesn't conform to specification.
+                
+                Please contact the developer and copy-paste the following message to them.
+                
+                {results_text}
+                '''
+            )
+            return handled
+
+        return True, None
+
+    if isinstance(context, aqt.editor.Editor) and message == 'myankiplugin:generate':
+        on_generate_clicked(context)
+        return True, None
+
+    return handled
 
 
 aqt.gui_hooks.webview_did_receive_js_message.append(webview_did_receive_js_message)
@@ -297,6 +357,7 @@ class GetTextDialog(aqt.qt.QDialog):
         self._add_input_field(label=aqt.utils.tr.actions_name(), line_edit=self._edit_name)
 
         self._edit_url = aqt.qt.QLineEdit()
+        self._edit_url.setText('http://localhost:9090/uppercase.rq')
         self._add_input_field(label="URL:", line_edit=self._edit_url)
 
         dialog_button_box = aqt.qt.QDialogButtonBox(aqt.qt.QDialogButtonBox.StandardButton.Ok | aqt.qt.QDialogButtonBox.StandardButton.Cancel)

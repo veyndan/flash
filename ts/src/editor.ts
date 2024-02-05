@@ -1,5 +1,3 @@
-import "./styles/fields-grid.scss";
-
 import StrikeThrough from "./StrikeThrough.svelte";
 
 /**

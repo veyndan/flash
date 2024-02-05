@@ -1,6 +1,7 @@
 PREFIX anki: <https://veyndan.com/foo/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX sh: <http://www.w3.org/ns/shacl#>
 
 CONSTRUCT {
     anki:text a anki:field;
@@ -17,6 +18,14 @@ CONSTRUCT {
         rdfs:label "Simple";
         anki:qfmt "{{Text}}";
         anki:afmt "{{FrontSide}}\n\n<hr id=answer>\n\n{{Uppercase Text}}".
+
+    anki:TextShape a sh:NodeShape;
+    	sh:targetNode anki:text;
+    	sh:property anki:TextPropertyShape.
+
+    anki:TextPropertyShape a sh:PropertyShape;
+        sh:path rdf:value;
+        sh:pattern "^B".
 }
 WHERE {
     SELECT ?text_or_empty (UCASE(?text_or_empty) AS ?uppercaseText) WHERE {
