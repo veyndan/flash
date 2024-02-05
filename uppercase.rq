@@ -4,25 +4,25 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
 CONSTRUCT {
     anki:text a anki:field;
-        rdfs:label "Text";
+        rdfs:label "Text"@en-GB, "Text in German"@de;
         anki:required true;
         rdf:value ?text_or_empty.
 
     anki:uppercaseText a anki:field;
-        rdfs:label "Uppercase Text";
+        rdfs:label "Uppercase Text"@en-GB, "Uppercase Text in German"@de;
         anki:required false;
         rdf:value ?uppercaseText.
 
     anki:simpleTemplate a anki:template;
-        rdfs:label "Simple";
-        anki:qfmt "{{Text}}";
-        anki:afmt "{{FrontSide}}\n\n<hr id=answer>\n\n{{Uppercase Text}}".
+        rdfs:label "Simple"@en-GB;
+        anki:qfmt "{{Text}}"@en-GB;
+        anki:afmt "{{FrontSide}}\n\n<hr id=answer>\n\n{{Uppercase Text}}"@en-GB.
 }
 WHERE {
     SELECT ?text_or_empty (UCASE(?text_or_empty) AS ?uppercaseText) WHERE {
         OPTIONAL {
             ?textField a anki:field;
-                rdfs:label "Text";
+                rdfs:label "Text"@en-GB;
                 rdf:value ?text.
         }
         BIND(COALESCE(?text, "") AS ?text_or_empty)
