@@ -16,7 +16,7 @@
     <LabelButton
         tooltip="Generate Note"
         on:click={(event) => {
-            pycmd("myankiplugin:generate")
+            pycmd("flash:generate")
             document.execCommand(key);
             updateState(event);
         }}
