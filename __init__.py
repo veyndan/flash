@@ -30,28 +30,14 @@ class NoteNotFoundError(Exception):
     """ Note not found. """
 
 
-def requirement_hints(editor: aqt.editor.Editor) -> None:
+def add_editor_hints(editor: aqt.editor.Editor, url: urllib.request.Request) -> None:
     """
     Add hints to the GUI to get the initial state of the note into a form (fields_state_initial) that can be parsed by
     myankiplugin.
     """
-    note = editor.note
-    if note is None:
-        aqt.utils.showInfo("No note found.")
-        return
-    actual_note: anki.notes.Note = note
-
     fields_state_initial = rdflib.Graph()
 
-    config = aqt.mw.addonManager.getConfig(__name__)
-
-    url = next((query['url'] for query in config['urls'] if query['noteTypeId'] == actual_note.mid), None)
-    if url is None:
-        print('url not found for note type', actual_note.mid)
-        return
-    actual_url: str = url
-
-    with urllib.request.urlopen(actual_url) as response:
+    with urllib.request.urlopen(url) as response:
         prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
 
     query_result = fields_state_initial.query(prepared_query)
@@ -85,7 +71,20 @@ def requirement_hints(editor: aqt.editor.Editor) -> None:
         )
 
 
-aqt.gui_hooks.editor_did_load_note.append(requirement_hints)
+def editor_did_load_note(editor: aqt.editor.Editor) -> None:
+    note = editor.note
+    if note is None:
+        aqt.utils.showInfo("No note found.")
+    else:
+        config = aqt.mw.addonManager.getConfig(__name__)
+        url = next((query['url'] for query in config['urls'] if query['noteTypeId'] == note.mid), None)
+        if url is None:
+            print('url not found for note type', note.mid)
+        else:
+            add_editor_hints(editor, urllib.request.Request(url))
+
+
+aqt.gui_hooks.editor_did_loadƒ_note.append(editor_did_load_note)
 
 
 def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.notes.Note:
