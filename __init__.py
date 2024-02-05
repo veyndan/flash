@@ -1,4 +1,5 @@
 import pathlib
+import textwrap
 import typing
 import urllib.request
 
@@ -165,10 +166,13 @@ def map_note(
         """
         PREFIX anki: <https://veyndan.com/foo/>
         
-        SELECT ?fieldLabel ?fieldValue WHERE {
-            [] a anki:field;
+        SELECT ?fieldLabel ?fieldValue ?fieldIri WHERE {
+            ?field a anki:field;
                 rdfs:label ?fieldLabel;
                 rdf:value ?fieldValue.
+            OPTIONAL {
+                ?field anki:iri ?fieldIri.
+            }
         }
         """
     )
@@ -176,12 +180,35 @@ def map_note(
     for binding in query_result2:
         label2: rdflib.Literal = binding["fieldLabel"]
         value2: rdflib.Literal = binding["fieldValue"]
-        print(f"({label2}, {value2})")
-        note[label2.value] = (
-            editor.urlToLink(value2.value)
-            if editor.isURL(value2.value)
-            else value2.value
-        )
+        iri2: rdflib.URIRef | None = binding["fieldIri"]
+        print(f"({label2}, {value2}, {iri2})")
+
+        field_value: str
+        if editor.isURL(value2.value):
+            field_value = editor.urlToLink(value2.value)
+        else:
+            field_value = value2.value
+
+        if iri2 is not None:
+            # I suppose that we can wrap ALL fields in the below, and just not wrap the property="url" field for those that don't have it.
+            # This is assuming there will be other metadata in the future, which isn't a wild guess.
+
+            # We probably don't want the iri to be wrapped in an anchor tag.
+            # The actual link isn't that interesting to anyone that isn't a query author.
+
+            # The cool thing with using RDFa like below, is that I can do a standard sparql query (I assume) over all the notes.
+            # I also don't have to store the information anywhere else like in user_files, then having to worry about database syncing issues.
+
+            # This is again not necessary for my current stuff as I can just look up the QID from the current text,
+            # but when I want to add the itemsForThisSense stuff, it will be important as there is often multiple senses for the same word.
+            field_value = textwrap.dedent(
+                f"""\
+                <div vocab="https://veyndan.com/foo/" typeof="field">
+                    <a property="url" href="{iri2.toPython()}">{field_value}</a>
+                </div>"""
+            )
+
+        note[label2.value] = field_value
 
     return note
 
