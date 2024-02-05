@@ -1,0 +1,31 @@
+@prefix ns1: <https://veyndan.com/foo/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+[] a ns1:Note ;
+    ns1:noteTypeId "1665003713183"^^xsd:string ;
+    ns1:url <http://localhost:9090/flash/de_en.rq> .
+
+[] a ns1:Note ;
+    ns1:noteTypeId "1665000851396"^^xsd:string ;
+    ns1:url <http://localhost:9090/flash/de_en.rq> .
+
+[] a ns1:Note ;
+    ns1:noteTypeId "1664999528739"^^xsd:string ;
+    ns1:url <http://localhost:9090/flash/de_en.rq> .
+
+[] a ns1:Note ;
+    ns1:noteTypeId "1664834501417"^^xsd:string ;
+    ns1:url <http://localhost:9090/flash/de_en.rq> .
+
+[] a ns1:Note ;
+    ns1:noteTypeId "1664834438570"^^xsd:string ;
+    ns1:url <http://localhost:9090/flash/de_en.rq> .
+
+[] a ns1:Note ;
+    ns1:noteTypeId "1664832794044"^^xsd:string ;
+    ns1:url <http://localhost:9090/de_en.rq> .
+
+[] a ns1:Note ;
+    ns1:noteTypeId "1664832776950"^^xsd:string ;
+    ns1:url <http://localhost:9090/uppercase.rq> .
+
