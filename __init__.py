@@ -144,6 +144,15 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
             .add((field, rdflib.RDFS.label, field_label)) \
             .add((field, rdflib.RDF.value, rdflib.Literal(note[field_label.value], lang=binding['fieldLanguageTag'].value)))
 
+    # This retrieves the proper nouns:
+    #  SELECT * WHERE {
+    #    hint:Query hint:optimizer "None".
+    #    ?enSingularLexicalEntry wikibase:lemma "English"@en;
+    #      dct:language wd:Q1860;
+    #      wikibase:lexicalCategory [(wdt:P279*) wd:Q1084]
+    #  }
+    # Perhaps will want/need to have a distinction between noun and plural noun though.
+
     # noinspection HttpUrlsUsage,SpellCheckingInspection
     prepared_query = rdflib.plugins.sparql.prepareQuery(
         textwrap.dedent(
