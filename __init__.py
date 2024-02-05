@@ -88,6 +88,10 @@ def requirement_hints(editor: aqt.editor.Editor) -> None:
 aqt.gui_hooks.editor_did_load_note.append(requirement_hints)
 
 
+aqt.gui_hooks.editor_did_init.append(lambda editor: print("editor_did_init", editor.note))
+aqt.gui_hooks.editor_will_load_note.append(lambda editor_web_view: print("editor_web_view_did_init", editor_web_view.editor.note))
+
+
 def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.notes.Note:
     fields_state_initial = rdflib.Graph()
     for (label, value) in note.items():
