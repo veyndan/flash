@@ -19,7 +19,11 @@ import aqt.webview
 import PyQt6.QtWidgets
 
 sys.path.append('/Users/veyndan/Development/myankiplugin/.venv/lib/python3.9/site-packages')
+sys.path.append('/Users/veyndan/Development/myankiplugin')  # This feels wrong
+sys.path.append('/Users/veyndan/Development/myankiplugin/adapter')  # This feels extra wrong
 
+import adapter.graph  # noqa: E402
+import adapter.note  # noqa: E402
 import pyshacl  # noqa: E402
 import rdflib  # noqa: E402
 import rdflib.plugins.sparql  # noqa: E402
@@ -89,14 +93,7 @@ aqt.gui_hooks.editor_did_load_note.append(requirement_hints)
 
 
 def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.notes.Note:
-    fields_state_initial = rdflib.Graph()
-    for (label, value) in note.items():
-        import uuid
-        field_subject = rdflib.URIRef('https://veyndan.com/foo/' + uuid.uuid4().hex)  # TODO For some reason I can't use blank node
-        fields_state_initial \
-            .add((field_subject, rdflib.RDF.type, rdflib.URIRef('https://veyndan.com/foo/field'))) \
-            .add((field_subject, rdflib.RDFS.label, rdflib.Literal(label))) \
-            .add((field_subject, rdflib.RDF.value, rdflib.Literal(value)))
+    fields_state_initial = adapter.note.to_graph(note)
 
     config = aqt.mw.addonManager.getConfig(__name__)
 
@@ -109,32 +106,9 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
     with urllib.request.urlopen(actual_url) as response:
         prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
 
-    query_result = fields_state_initial.query(prepared_query)
+    fields_state_final = fields_state_initial.query(prepared_query).graph
 
-    query_result2 = query_result.graph.query(
-        rdflib.plugins.sparql.prepareQuery(
-            textwrap.dedent(
-                '''
-                PREFIX anki: <https://veyndan.com/foo/>
-                
-                SELECT ?fieldLabel ?fieldValue WHERE {
-                    [] a anki:field;
-                        rdfs:label ?fieldLabel;
-                        rdf:value ?fieldValue.
-                }
-                '''
-            )
-        )
-    )
-
-    for binding in query_result2:
-        label: rdflib.Literal = binding['fieldLabel']
-        value: rdflib.Literal = binding['fieldValue']
-        print(f"({label}, {value})")
-        link = editor.urlToLink(value.value) if editor.isURL(value.value) else value.value
-        note[label.value] = value.value if link is None else link
-
-    return note
+    return adapter.graph.to_note(fields_state_final, editor, note)
 
 
 def on_generate_clicked(editor: aqt.editor.Editor):
