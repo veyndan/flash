@@ -1,19 +1,20 @@
+PREFIX : <https://veyndan.com/bar/>
 PREFIX anki: <https://veyndan.com/foo/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
 CONSTRUCT {
-    anki:text a anki:field;
-        rdfs:label "Text";
+    :text a anki:field;
+        rdfs:label "Text"@en-GB, "Text in German"@de;
         anki:required true;
         rdf:value ?text_or_empty.
 
-    anki:uppercaseText a anki:field;
-        rdfs:label "Uppercase Text";
+    :uppercaseText a anki:field;
+        rdfs:label "Uppercase Text"@en-GB, "Uppercase Text in German"@de;
         anki:required false;
         rdf:value ?uppercaseText.
 
-    anki:simpleTemplate a anki:template;
+    :simpleTemplate a anki:template;
         rdfs:label "Simple";
         anki:qfmt "{{Text}}";
         anki:afmt "{{FrontSide}}\n\n<hr id=answer>\n\n{{Uppercase Text}}".
