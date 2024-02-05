@@ -1,4 +1,5 @@
 import pathlib
+import sys
 import typing
 import urllib.request
 
@@ -22,39 +23,9 @@ import rdflib
 import rdflib.plugins.sparql
 import rdflib.plugins.sparql.sparql
 
+sys.path.append("/Users/veyndan/Development/flash/flash/")
 
-def fields_as_graph(
-    fields: list[tuple[str, str]],
-    on_generate_clicked: bool,
-) -> rdflib.Graph:
-    import uuid
-
-    # Replace with BNode once https://github.com/RDFLib/rdflib/pull/2084 is released.
-    graph = rdflib.Graph()
-    graph.update(
-        f"""
-        PREFIX anki: <https://veyndan.com/foo/> 
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        
-        INSERT DATA {{
-            anki:onGenerateClicked rdf:value {rdflib.Literal(on_generate_clicked).n3()}.
-        }}
-        """
-    )
-    for label, value in fields:
-        graph.update(
-            f"""
-            PREFIX anki: <https://veyndan.com/foo/> 
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            
-            INSERT DATA {{
-                {(rdflib.URIRef('https://veyndan.com/foo/' + uuid.uuid4().hex)).n3()} a anki:field;
-                    rdfs:label {rdflib.Literal(label).n3()};
-                    rdf:value {rdflib.Literal(value).n3()}.
-            }}
-            """,
-        )
-    return graph
+import core  # noqa
 
 
 class NoteNotFoundError(Exception):
@@ -127,7 +98,7 @@ def map_note(
     Add hints to the GUI to get the initial state of the note into a form (fields_state_initial) that can be parsed by
     Flash.
     """
-    fields_state_initial = fields_as_graph(note.items(), on_generate_clicked)
+    fields_state_initial = core.fields_as_graph(note.items(), on_generate_clicked)
 
     config = Config()
 
