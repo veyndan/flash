@@ -106,22 +106,19 @@ def generate_note(editor: aqt.editor.Editor, note: anki.notes.Note) -> anki.note
         return note
     actual_url: str = url
 
-    with urllib.request.urlopen(actual_url) as response:
-        prepared_query = rdflib.plugins.sparql.prepareQuery(response.read())
-
-    query_result = fields_state_initial.query(prepared_query)
-
-    query_result2 = query_result.graph.query(
+    query_result2 = fields_state_initial.query(
         rdflib.plugins.sparql.prepareQuery(
             textwrap.dedent(
-                '''
+                f'''
                 PREFIX anki: <https://veyndan.com/foo/>
                 
-                SELECT ?fieldLabel ?fieldValue WHERE {
-                    [] a anki:field;
-                        rdfs:label ?fieldLabel;
-                        rdf:value ?fieldValue.
-                }
+                SELECT ?fieldLabel ?fieldValue WHERE {{
+                    SERVICE <{actual_url}> {{
+                        [] a anki:field;
+                            rdfs:label ?fieldLabel;
+                            rdf:value ?fieldValue.
+                    }}
+                }}
                 '''
             )
         )
