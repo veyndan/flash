@@ -11,146 +11,18 @@ PREFIX wd: <http://www.wikidata.org/entity/>
 PREFIX wdt: <http://www.wikidata.org/prop/direct/>
 PREFIX wikibase: <http://wikiba.se/ontology#>
 
-CONSTRUCT {
-    anki:enSingularField a anki:field;
-        rdfs:label "EN Singular";
-        anki:required true;
-        rdf:value ?enSingular.
-
-    anki:enPluralField a anki:field;
-        rdfs:label "EN Plural";
-        anki:required false;
-        rdf:value ?enPlural.
-
-    anki:enUsageExampleField a anki:field;
-        rdfs:label "EN Usage Example";
-        anki:required false;
-        rdf:value ?enUsageExample.
-
-    anki:deSingularNominativeField a anki:field;
-        rdfs:label "DE Singular Nominative";
-        anki:required true;
-        rdf:value ?deSingularNominative.
-
-    anki:deSingularNominativeDefiniteArticleRepresentation a anki:field;
-        rdfs:label "DE Singular Nominative Definite Article";
-        anki:required false;
-        rdf:value ?deSingularNominativeDefiniteArticleRepresentation.
-
-    anki:dePronunciationAudioSingularNominativeUrl1 a anki:field;
-        rdfs:label "DE Singular Nominative Pronunciation";
-        anki:required false;
-        rdf:value ?dePronunciationAudioSingularNominativeUrl1.
-
-    anki:dePluralNominative1 a anki:field;
-        rdfs:label "DE Plural Nominative";
-        anki:required false;
-        rdf:value ?dePluralNominative1.
-
-    anki:dePluralNominativeDefiniteArticleRepresentation a anki:field;
-        rdfs:label "DE Plural Nominative Definite Article";
-        anki:required false;
-        rdf:value ?dePluralNominativeDefiniteArticleRepresentation.
-
-    anki:dePronunciationAudioPluralNominativeUrl1 a anki:field;
-        rdfs:label "DE Plural Nominative Pronunciation";
-        anki:required false;
-        rdf:value ?dePronunciationAudioPluralNominativeUrl1.
-
-    anki:templateSingular a anki:template;
-        rdfs:label "Singular";
-        anki:qfmt "{{EN Singular}}\n<br/>\n<span class=\"form\">Singular</span>\n<br/>\n<span class=\"en-usage-example\">{{EN Usage Example}}</span>\n{{type:DE Singular Nominative Definite Article}}\n{{type:DE Singular Nominative}}";
-        anki:afmt "{{FrontSide}}\n\n<hr id=answer>\n\n{{DE Singular Nominative Definite Article}} {{DE Singular Nominative}}\n\n{{DE Singular Nominative Pronunciation}}\n".
-
-    anki:templatePlural a anki:template;
-        rdfs:label "Plural";
-        anki:qfmt "{{EN Plural}}\n<br/>\n<span class=\"form\">Plural</span>\n<br/>\n<span class=\"en-usage-example\">{{EN Usage Example}}</span>\n\n{{type:DE Plural Nominative Definite Article}}\n{{type:DE Plural Nominative}}";
-        anki:afmt "{{FrontSide}}\n\n<hr id=answer>\n\n{{DE Plural Nominative Definite Article}} {{DE Plural Nominative}}\n\n{{DE Plural Nominative Pronunciation}}\n".
-}
-WHERE {
-    SELECT DISTINCT
-        ?enSingular
-        ?enPlural
-        ?enUsageExample
-        ?deSingularNominative
-        ?deSingularNominativeDefiniteArticleRepresentation
-        (MIN(?dePronunciationAudioSingularNominativeUrl) AS ?dePronunciationAudioSingularNominativeUrl1)
-        (MAX(?dePluralNominative) AS ?dePluralNominative1)
-        ?dePluralNominativeDefiniteArticleRepresentation
-        (MIN(?dePronunciationAudioPluralNominativeUrl) AS ?dePronunciationAudioPluralNominativeUrl1)
-    WHERE {
-        {
-            SELECT * WHERE {
-                anki:onGenerateClicked rdf:value true.
-            }
-        }
-        OPTIONAL {
-            {
-                SELECT
-                    (STRLANG(?enSingularUnlocalized, "en") AS ?enSingular)
-                    (STRLANG(?deSingularNominativeUnlocalized, "de") AS ?deSingularNominative)
-                WHERE {
-                    ?enSingularField a anki:field;
-                        rdfs:label "EN Singular";
-                        rdf:value ?enSingularUnlocalized.
-                    FILTER(strlen(?enSingularUnlocalized) > 0)
-
-                    ?deSingularNominativeField a anki:field;
-                        rdfs:label "DE Singular Nominative";
-                        rdf:value ?deSingularNominativeUnlocalized.
-                    FILTER(strlen(?deSingularNominativeUnlocalized) > 0)
-                }
-            }
-            BIND("die" AS ?dePluralNominativeDefiniteArticleRepresentation)
+SELECT * WHERE {
+    {
+        SELECT ?person ?predicate ?object WHERE {
+            BIND(wd:Q42 AS ?person)
 
             SERVICE <https://query.wikidata.org/sparql> {
-                hint:Query hint:optimizer "None" .
-
-                ?deSingularNominativeLexicalEntry
-                    wikibase:lemma ?deSingularNominative;
-                    dct:language wd:Q188;
-                    wdt:P5185 ?deSingularNominativeGrammaticalGender;
-                    a ontolex:LexicalEntry;
-                    ontolex:lexicalForm ?deSingularNominativeLexicalForm.
-
-                {
-                    ?deSingularNominativeLexicalForm p:P443 ?dePronunciationAudioSingularNominative.
-                    ?dePronunciationAudioSingularNominative ps:P443 ?dePronunciationAudioSingularNominativeUrl.
-                    ?deSingularNominativeLexicalForm wikibase:grammaticalFeature wd:Q131105, wd:Q110786.
-                }
-                UNION
-                {
-                    ?deSingularNominativeLexicalForm p:P443 ?dePronunciationAudioPluralNominative.
-                    ?dePronunciationAudioPluralNominative ps:P443 ?dePronunciationAudioPluralNominativeUrl.
-                    ?deSingularNominativeLexicalForm
-                        wikibase:grammaticalFeature wd:Q131105, wd:Q146786;
-                        ontolex:representation ?dePluralNominative.
-                }
-
-                ?enSingularLexicalEntry
-                    wikibase:lemma ?enSingular;
-                    dct:language wd:Q1860;
-                    wikibase:lexicalCategory wd:Q1084;
-                    a ontolex:LexicalEntry;
-                    ontolex:lexicalForm ?enLexicalForm.
-
-                ?enLexicalForm wikibase:grammaticalFeature wd:Q146786;
-                    ontolex:representation ?enPlural.
-
-                ?deSingularNominativeDefiniteArticleLexicalEntry
-                    wikibase:lexicalCategory wd:Q2865743;
-                    dct:language wd:Q188;
-                    a ontolex:LexicalEntry;
-                    ontolex:lexicalForm ?deSingularNominativeDefiniteArticleLexicalForm.
-
-                ?deSingularNominativeDefiniteArticleLexicalForm
-                    wikibase:grammaticalFeature ?deSingularNominativeGrammaticalGender, wd:Q131105, wd:Q110786;
-                    a ontolex:Form;
-                    ontolex:representation ?deSingularNominativeDefiniteArticleRepresentation.
-
-                OPTIONAL { ?enSingularLexicalEntry wdt:P5831 ?enUsageExample. }
-                MINUS { ?enLexicalForm wikibase:grammaticalFeature wd:Q1861696. }
+                ?person ?predicate ?object.
             }
         }
     }
+
+    # TODO Deleting this empty service below makes the service in the subquery get passed the ?person VALUE.
+    #  File this bug.
+    SERVICE <https://query.wikidata.org/sparql> {}
 }
